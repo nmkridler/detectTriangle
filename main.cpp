@@ -33,21 +33,32 @@ int main(int argc, char **argv) {
     device.startDepth();
 
     // As long as the program is alive...
+    int iter = 0;
+    bool stackFlag = true;
+    bool firstPass = true;
     while (!die) {
         // get frames and push to screen
-    	device.getVideo(rgbMat, rgbCor);
+    	device.getVideo(rgbMat, rgbCor, stackFlag, firstPass);
+        if( firstPass ) firstPass = false;
     	device.getDepth(depthMat);
         cv::imshow("rgb", rgbMat); 
     	depthMat.convertTo(depthf, CV_8UC1, 255.0/2048.0);
-        cv::imshow("depth",rgbCor);
+        if (stackFlag) cv::imshow("depth",rgbCor);
 	if(cvWaitKey(30) >= 0){
           cvDestroyWindow("rgb");
           cvDestroyWindow("depth");
+          device.stopVideo();
+          device.stopDepth();
           break;
+        }
+        iter++;
+        stackFlag = false;
+        if (iter == 30)
+        {
+           iter = 0;
+           stackFlag = true;
         }
     }
     // Shut down
-    device.stopVideo();
-    device.stopDepth();
     return 0;
 }

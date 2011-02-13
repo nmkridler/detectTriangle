@@ -68,12 +68,22 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
           m_depth_mutex.unlock();
       }
 
-      bool getVideo(Mat& output, Mat& corners) {
+      bool getVideo(Mat& output, Mat& corners, bool stackFlag, bool firstPass) {
          m_rgb_mutex.lock();
          if(m_new_rgb_frame) {
             // Run Harris Corner Detection
             cvtColor(rgbMat, output, CV_RGB2BGR);
-            getCorners(corners);            
+            if( firstPass ) ownMat = rgbMat;
+            
+            if( stackFlag )
+            {
+               getCorners(corners);
+               ownMat += rgbMat;
+            }
+            else
+            {
+               ownMat += rgbMat; 
+            }            
             m_new_rgb_frame = false;
             m_rgb_mutex.unlock();
             return true;
@@ -99,19 +109,18 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
       void getCorners(Mat& output){
          // Create a corner image and a grayscale
          Mat cornerImg32(rgbMat.rows, rgbMat.cols, CV_32FC1);
-         Mat gray;
-         cv::cvtColor(rgbMat, gray, CV_RGB2GRAY);
-         cornerHarris(gray, cornerImg32, 3, 3, 0.04);
-
+         Mat edges;
+         cv::cvtColor(ownMat, edges, CV_RGB2GRAY);
+         GaussianBlur(edges, edges, Size(7,7), 1.5, 1.5);
+         //Canny(edges, edges, 0, 30, 3);
+         cornerHarris(edges, cornerImg32, 3, 3, 0.04);
          // Get the min/max
 	 double minVal = 0;
          double maxVal = 0;
          minMaxLoc( cornerImg32, &minVal, &maxVal, NULL, NULL);
          double scale = 255.0/(maxVal - minVal);
          double shift = -minVal*scale;
-         Size elemSize(3,3);
-         Mat structElem = getStructuringElement( MORPH_RECT, elemSize);
-         dilate( cornerImg32, cornerImg32, structElem );
+         dilate( cornerImg32, cornerImg32, Mat() );
          convertScaleAbs(cornerImg32, output, scale, shift);
       }
    private:
