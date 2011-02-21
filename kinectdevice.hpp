@@ -68,22 +68,10 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
           m_depth_mutex.unlock();
       }
 
-      bool getVideo(Mat& output, Mat& corners, bool stackFlag, bool firstPass) {
+      bool getVideo(Mat& output) {
          m_rgb_mutex.lock();
          if(m_new_rgb_frame) {
-            // Run Harris Corner Detection
             cvtColor(rgbMat, output, CV_RGB2BGR);
-            if( firstPass ) ownMat = rgbMat;
-            
-            if( stackFlag )
-            {
-               getCorners(corners);
-               ownMat += rgbMat;
-            }
-            else
-            {
-               ownMat += rgbMat; 
-            }            
             m_new_rgb_frame = false;
             m_rgb_mutex.unlock();
             return true;
@@ -91,6 +79,14 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
             m_rgb_mutex.unlock();
             return false;
          }
+      }
+
+      void setOwnMat( void ) {
+         rgbMat.copyTo(ownMat);
+      }
+
+      void accumOwnMat( void ){
+         ownMat += rgbMat;
       }
 
       bool getDepth(Mat& output) {
@@ -105,23 +101,53 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
             return false;
          }
       }
+      
+      void getBinary(Mat& output){
+         Mat gray;
+         cvtColor(ownMat, gray, CV_RGB2GRAY);
+         GaussianBlur(gray, gray, Size(7,7), 1.5, 1.5);
+         Canny(gray, gray, 0, 30, 3);
+         dilate(gray, output, Mat());
+         output = output > 128;
+      } 
 
-      void getCorners(Mat& output){
-         // Create a corner image and a grayscale
-         Mat cornerImg32(rgbMat.rows, rgbMat.cols, CV_32FC1);
-         Mat edges;
-         cv::cvtColor(ownMat, edges, CV_RGB2GRAY);
-         GaussianBlur(edges, edges, Size(7,7), 1.5, 1.5);
-         //Canny(edges, edges, 0, 30, 3);
-         cornerHarris(edges, cornerImg32, 3, 3, 0.04);
-         // Get the min/max
-	 double minVal = 0;
-         double maxVal = 0;
-         minMaxLoc( cornerImg32, &minVal, &maxVal, NULL, NULL);
-         double scale = 255.0/(maxVal - minVal);
-         double shift = -minVal*scale;
-         dilate( cornerImg32, cornerImg32, Mat() );
-         convertScaleAbs(cornerImg32, output, scale, shift);
+      void getContour( Mat& output){
+         Mat dst = Mat::zeros(output.size(), CV_8UC3);
+         Mat gray, tmpMat;
+         getBinary(gray);
+         getBinary(tmpMat);
+         
+         // Contour info
+         vector<vector<Point> > contours;
+         vector<Vec4i> hierarchy;
+         findContours(gray, contours, hierarchy,
+                      CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
+         if( contours.size() > 0 ){
+            cout << "Contours: " << contours.size() << endl;
+            int idx = 0;
+            while( idx < (int)contours.size() ){
+               vector<Point> approx;
+               approxPolyDP(Mat(contours[idx]), approx, 5, true);
+               double area1 = contourArea(approx);
+               if( area1 > 0.0 && approx.size()==3 && 
+                   isContourConvex(Mat(contours[idx]))){
+                  cout << "Area: " << idx << endl;
+                  cout << "Vertices: " << approx.size() << endl;
+                  Scalar color(255,255,255);
+                  //drawContours(dst, contours, idx, color, CV_FILLED);
+                  fillConvexPoly(dst, contours[idx].data(), 
+                                 contours[idx].size(), color);
+               }
+               idx++;
+            }
+            
+            dst.copyTo(output);
+         } 
+         else 
+         {
+           tmpMat.copyTo(output);
+           cout << "No Contours" << endl;
+         }
       }
    private:
       std::vector<uint8_t> m_buffer_depth;
