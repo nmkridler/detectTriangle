@@ -44,9 +44,13 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
            // Fill the gamma array
          for( unsigned int i = 0 ; i < 2048 ; i++) 
          {
-            float v = i/2048.0;
-            v = std::pow(v, 3)* 6;
-            m_gamma[i] = v*6*256;
+            const float k1 = 1.1863;
+            const float k2 = 2852.5;
+            const float k3 = 0.1236;
+            //float v = i/2048.0;
+            //v = std::pow(v, 3)* 6;
+            const float v = k3*tanf(i/k2 + k1);
+            m_gamma[i] = v;//*6*256;
          }
       }
       // Do not call directly even in child
@@ -82,11 +86,9 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
       }
 
       void setOwnMat( void ) {
-         rgbMat.copyTo(ownMat);
-      }
-
-      void accumOwnMat( void ){
-         ownMat += rgbMat;
+         m_rgb_mutex.lock();
+         cvtColor(rgbMat, ownMat, CV_RGB2BGR);
+         m_rgb_mutex.unlock();
       }
 
       bool getDepth(Mat& output) {
@@ -104,7 +106,7 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
       
       void getBinary(Mat& output){
          Mat gray;
-         cvtColor(ownMat, gray, CV_RGB2GRAY);
+         cvtColor(ownMat, gray, CV_BGR2GRAY);
          GaussianBlur(gray, gray, Size(7,7), 1.5, 1.5);
          Canny(gray, gray, 0, 30, 3);
          dilate(gray, output, Mat());
@@ -112,7 +114,7 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
       } 
 
       void getContour( Mat& output){
-         Mat dst = Mat::zeros(output.size(), CV_8UC3);
+         Mat dst = Mat::zeros(output.size(), CV_8UC1);
          Mat gray, tmpMat;
          getBinary(gray);
          getBinary(tmpMat);
@@ -123,18 +125,13 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
          findContours(gray, contours, hierarchy,
                       CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
          if( contours.size() > 0 ){
-            cout << "Contours: " << contours.size() << endl;
             int idx = 0;
             while( idx < (int)contours.size() ){
                vector<Point> approx;
                approxPolyDP(Mat(contours[idx]), approx, 5, true);
                double area1 = contourArea(approx);
-               if( area1 > 0.0 && approx.size()==3 && 
-                   isContourConvex(Mat(contours[idx]))){
-                  cout << "Area: " << idx << endl;
-                  cout << "Vertices: " << approx.size() << endl;
+               if( area1 > 0.0 && approx.size()==3 ){
                   Scalar color(255,255,255);
-                  //drawContours(dst, contours, idx, color, CV_FILLED);
                   fillConvexPoly(dst, contours[idx].data(), 
                                  contours[idx].size(), color);
                }
@@ -149,10 +146,36 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
            cout << "No Contours" << endl;
          }
       }
+ 
+      void contourImg(Mat& output)
+      {
+         setOwnMat();
+         // convert to HSV
+         //Mat tmpImg;
+         //cvtColor(ownMat, tmpImg, CV_BGR2HSV);
+         //Mat orangeImg(ownMat.size(), CV_8UC1);
+         //inRange(tmpImg, Scalar(0,0,0), Scalar(255,130,255), orangeImg);
+         //ownMat.setTo(Scalar(0,0,0),orangeImg);
+         
+         Mat contour, mask;
+         getBinary(contour);
+         getContour(contour);
+         setOwnMat();
+         inRange(contour, Scalar(0), Scalar(254), mask);
+         ownMat.setTo(Scalar(0,0,0),mask);
+         ownMat.copyTo(output);
+         Scalar matSum = mean(ownMat,mask);
+         cout << matSum[0] << " " << matSum[1] << " " << matSum[2] << endl;
+         Scalar depSum = mean(depthMat,mask);
+         int depIdx = (int)depSum[0] - 1;
+         if( depIdx >= 0 ) cout << "Depth: " << m_gamma[depIdx] << endl;
+         cvWaitKey(100);
+      }
+
    private:
       std::vector<uint8_t> m_buffer_depth;
       std::vector<uint8_t> m_buffer_rgb;
-      std::vector<uint16_t> m_gamma;
+      std::vector<float> m_gamma;
       Mat depthMat;
       Mat rgbMat;
       Mat ownMat;

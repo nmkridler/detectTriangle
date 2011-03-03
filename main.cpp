@@ -29,40 +29,33 @@ int main(int argc, char **argv) {
     // Generate windows and start the feed
     namedWindow("rgb",CV_WINDOW_AUTOSIZE);
     namedWindow("depth",CV_WINDOW_AUTOSIZE);
+    namedWindow("orange",CV_WINDOW_AUTOSIZE);
     device.startVideo();
     device.startDepth();
 
     // As long as the program is alive...
-    int iter = 0;
-    bool firstPass = true;
     while (!die) {
         // get frames and push to screen
     	device.getVideo(rgbMat);
-        if (firstPass){
-           device.setOwnMat();
-           device.getBinary(ownMat);
-           imshow("depth",ownMat);
-           firstPass = false;
-        }// else device.accumOwnMat();
+
+        // contour
+        //device.setOwnMat();
+        //device.getBinary(ownMat);
+        device.contourImg(ownMat);
     	device.getDepth(depthMat);
         cv::imshow("rgb", rgbMat); 
-    	depthMat.convertTo(depthf, CV_8UC1, 255.0/2048.0);
-       
+    	depthMat.convertTo(depthf, CV_8UC3, 255.0/2048.0);
+        //device.getContour(ownMat);
+        imshow("orange",ownMat);
+        imshow("depth",depthf);
 	if(cvWaitKey(30) >= 0){
-          device.stopVideo();
-          device.stopDepth();
           cvDestroyWindow("rgb");
           cvDestroyWindow("depth");
+          device.stopVideo();
+          device.stopDepth();
           break;
         }
-        iter++;
-        if (iter == 30)
-        {
-           iter = 0;
-           device.getContour(ownMat);
-           imshow("depth",ownMat);
            
-        }
     }
     // Shut down
     return 0;
