@@ -6,6 +6,7 @@
 #include <cv.h>
 #include <cxcore.h>
 #include <highgui.h>
+#include "detection.hpp"
 
 using namespace cv;
 using namespace std;
@@ -47,15 +48,25 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
             const float k1 = 1.1863;
             const float k2 = 2852.5;
             const float k3 = 0.1236;
-            //float v = i/2048.0;
-            //v = std::pow(v, 3)* 6;
             const float v = k3*tanf(i/k2 + k1);
-            m_gamma[i] = v;//*6*256;
+            m_gamma[i] = v;
          }
+
+         // Create the triangle
+         Point a0(298, 98), a1(344,102), a2(341,125);
+              
+         // First triangle
+         vector<Point> initTriangle; 
+         initTriangle.push_back(a0);
+         initTriangle.push_back(a1);
+         initTriangle.push_back(a2);
+         Detection firstDetection(initTriangle);
+         m_triangle.push_back(initTriangle);
+ 
+
       }
       // Do not call directly even in child
       void VideoCallback(void* _rgb, uint32_t timestamp) {
-          //std::cout << "RGB callback" << std::endl;
           m_rgb_mutex.lock();
           uint8_t* rgb = static_cast<uint8_t*>(_rgb); 
           rgbMat.data = rgb;
@@ -64,7 +75,6 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
       }
       // Do not call directly even in child
       void DepthCallback(void* _depth, uint32_t timestamp) {
-          //std::cout << "Depth callback" << std::endl;
           m_depth_mutex.lock();
           uint16_t* depth = static_cast<uint16_t*>(_depth);
           depthMat.data = (uchar*) depth;
@@ -114,31 +124,50 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
       } 
 
       void getContour( Mat& output){
+         // Create a destination array
          Mat dst = Mat::zeros(output.size(), CV_8UC1);
-         Mat gray, tmpMat;
-         getBinary(gray);
-         getBinary(tmpMat);
+         Mat gray, tmpMat;    // Initialize some Mats
+         getBinary(gray);     // Convert rgb data to grayscale
+         getBinary(tmpMat);   // Put in an additional array
          
          // Contour info
          vector<vector<Point> > contours;
          vector<Vec4i> hierarchy;
          findContours(gray, contours, hierarchy,
                       CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
+
+         // If contours exist, find the triangles
          if( contours.size() > 0 ){
-            int idx = 0;
+            // Initialize area and indices
+            double maxArea = 0.0;
+            int    idx = 0;
+            int    maxIdx = 0;
             while( idx < (int)contours.size() ){
                vector<Point> approx;
                approxPolyDP(Mat(contours[idx]), approx, 5, true);
-               double area1 = contourArea(approx);
-               if( area1 > 0.0 && approx.size()==3 ){
-                  Scalar color(255,255,255);
-                  fillConvexPoly(dst, contours[idx].data(), 
-                                 contours[idx].size(), color);
+               double areaIdx = contourArea(approx);
+               // Create a mask
+               if( areaIdx > 0.0 && approx.size()==3 ){
+                  if(areaIdx > maxArea){
+                     maxArea = areaIdx;
+                     maxIdx  = idx;
+                     m_triangle.clear();
+                     Detection dApprox(approx);
+                     m_triangle.push_back(dApprox);
+                  }
+                  //Scalar color(255,255,255);
+                  //fillConvexPoly(dst, contours[idx].data(), 
+                  //               contours[idx].size(), color);
                }
                idx++;
             }
-            
-            dst.copyTo(output);
+            // Create the convex poly
+            Scalar color(255,255,255);
+            vector<Point> newObject;
+            m_triangle[0].getVertices(newObject);
+            fillConvexPoly(dst, newObject.data(), 
+                           newObject.size(), color);
+            dst.copyTo(output); // Copy to output
          } 
          else 
          {
@@ -150,13 +179,17 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
       void contourImg(Mat& output)
       {
          setOwnMat();
+#if 0         
          // convert to HSV
-         //Mat tmpImg;
-         //cvtColor(ownMat, tmpImg, CV_BGR2HSV);
-         //Mat orangeImg(ownMat.size(), CV_8UC1);
-         //inRange(tmpImg, Scalar(0,0,0), Scalar(255,130,255), orangeImg);
-         //ownMat.setTo(Scalar(0,0,0),orangeImg);
-         
+         Mat tmpImg;
+         cvtColor(ownMat, tmpImg, CV_BGR2HSV);
+         Mat orangeImg(ownMat.size(), CV_8UC1);
+         inRange(tmpImg, Scalar(155,200,150), Scalar(175,255,255), orangeImg);
+         dilate(orangeImg,orangeImg,Mat());
+         ownMat.setTo(Scalar(0,0,0),orangeImg);
+         ownMat.copyTo(output);
+#endif
+         // Create Mats to hold contours and masks
          Mat contour, mask;
          getBinary(contour);
          getContour(contour);
@@ -164,18 +197,21 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
          inRange(contour, Scalar(0), Scalar(254), mask);
          ownMat.setTo(Scalar(0,0,0),mask);
          ownMat.copyTo(output);
+         inRange(contour, Scalar(254), Scalar(256), mask);
          Scalar matSum = mean(ownMat,mask);
          cout << matSum[0] << " " << matSum[1] << " " << matSum[2] << endl;
          Scalar depSum = mean(depthMat,mask);
-         int depIdx = (int)depSum[0] - 1;
-         if( depIdx >= 0 ) cout << "Depth: " << m_gamma[depIdx] << endl;
-         cvWaitKey(100);
+         //int depIdx = (int)depSum[0] - 1;
+         //if( depIdx >= 0 ) cout << "Depth: " << m_gamma[depIdx] << endl;
       }
+
+      float convertDepthToMeters( int &depIdx ){ return m_gamma[depIdx];}
 
    private:
       std::vector<uint8_t> m_buffer_depth;
       std::vector<uint8_t> m_buffer_rgb;
       std::vector<float> m_gamma;
+      vector<Detection> m_triangle;
       Mat depthMat;
       Mat rgbMat;
       Mat ownMat;
