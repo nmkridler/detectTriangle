@@ -19,7 +19,6 @@ int main(int argc, char **argv) {
     Mat depthMat(Size(640,480),CV_16UC1);
     Mat depthf  (Size(640,480),CV_8UC1);
     Mat rgbMat(Size(640,480),CV_8UC3,Scalar(0));
-    Mat rgbCor(Size(640,480),CV_8UC3,Scalar(0));
     Mat ownMat(Size(640,480),CV_8UC3,Scalar(0));
 
     // Kinect device
@@ -38,18 +37,19 @@ int main(int argc, char **argv) {
         // get frames and push to screen
     	device.getVideo(rgbMat);
 
-        // contour
-        //device.setOwnMat();
-        //device.getBinary(ownMat);
-        device.contourImg(ownMat);
+        // Triangle detection
+        device.setOwnMat();
+        //device.filterOrange(ownMat);  // Get only the orange pixels
+        device.contourImg(ownMat);    // contour the image
     	device.getDepth(depthMat);
         cv::imshow("rgb", rgbMat); 
-    	depthMat.convertTo(depthf, CV_8UC3, 255.0/2048.0);
-        //device.getContour(ownMat);
+    	depthMat.convertTo(depthf, CV_8UC1, 255.0/2048.0);
+       
         imshow("orange",ownMat);
         imshow("depth",depthf);
 	if(cvWaitKey(30) >= 0){
           cvDestroyWindow("rgb");
+          cvDestroyWindow("orange");
           cvDestroyWindow("depth");
           device.stopVideo();
           device.stopDepth();

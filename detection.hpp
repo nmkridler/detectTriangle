@@ -20,6 +20,9 @@ class Detection
       // Get distance to vertices
       void getDistance( Point3f &distance ){ distance = m_distance;}
 
+      // Center of mass
+      void getCentMass( Point &centMass ){ centMass = m_centMass; }
+
       // Get Color
       void getColor( Scalar &color ){ color = m_color; }
       
@@ -34,15 +37,17 @@ class Detection
 
       void setColor( Scalar &color ){m_color = color;}
 
-      void SetArea( float &area ){ m_area = area; }
+      void setArea( float &area ){ m_area = area; }
 
+      void setCentMass( Point &centMass ){ m_centMass = centMass;}
       // Destructor
       ~Detection(){}
    private:
       vector<Point> m_contact;       // Vertices of object
       Point3f       m_distance;      // Distance to each vertex in meters
       Scalar        m_color;         // Color of the object
-      Point3f       m_normalVector;  // Normal to the object 
+      Point3f       m_normalVector;  // Normal to the object
+      Point         m_centMass;      // Center of mass 
       float         m_area;          // Area of the object
       
 
