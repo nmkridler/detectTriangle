@@ -148,7 +148,10 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
 
        // Filter the feed to get orange only 
       void filterOrange( Mat& output);
-     
+    
+      // Set the color mean and standard deviation of the object
+      void contourColor( Detection &newDetection);
+ 
       void contourImg(Mat& output);
      
 

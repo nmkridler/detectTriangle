@@ -32,7 +32,7 @@ class Detection
       void getColor( Scalar &color ) const;
       
       // Get Area
-      void getArea( float &area) const;
+      float getArea() const;
 
       // Get Vertices
       void getVertices( vector<Point> &contact ) const;
@@ -40,8 +40,17 @@ class Detection
       // Get Valid
       bool validDetection() const;
 
+      // Get Lengths
+      void getLengths( vector<float> &length) const;
+
       // Get hit count
       unsigned int getMissCount() const;
+
+      // Get mean
+      void getMean( Scalar &meanVal) const;
+
+      // Get mean
+      void getStdDev( Scalar &stdVal) const;
 
       // Increment hit count
       void addMiss();
@@ -73,6 +82,12 @@ class Detection
       // Set side lengths
       void setSideLength();
      
+      // Set mean
+      void setMean( Scalar &meanVal );
+
+      // Set StdDev
+      void setStdDev( Scalar &stdVal );
+
       // Get right angle flag
       bool isRightTriangle(){ return m_rightAngle; }
       // Destructor
@@ -89,7 +104,8 @@ class Detection
       bool            m_valid;           // valid detection?
       bool            m_rightAngle;      // Is it a right angle?
       unsigned int    m_missCount;       // Number of misses 
-
+      Scalar          m_mean;            // Color mean
+      Scalar          m_stddev;          // Color standard deviation
 };
 
 #endif

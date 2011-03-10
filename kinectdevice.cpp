@@ -305,8 +305,8 @@ void MyFreenectDevice::reduceDetections()
      if( m_triangle[idx].getMissCount() > 10 )
          m_triangle[idx].setValid(false);
 
-     //if( !m_triangle[idx].isRightTriangle())
-       //   m_triangle[idx].setValid(false);
+     if( !m_triangle[idx].isRightTriangle())
+        m_triangle[idx].setValid(false);
               
      // Add only if it's a valid detection
      if( m_triangle[idx].validDetection())
@@ -430,6 +430,28 @@ void MyFreenectDevice::reduceContour( const vector<Point> &contour, vector<Point
    newTri.push_back(contour[distIdx[0]]);
    newTri.push_back(contour[distIdx[1]]);
    newTri.push_back(contour[distIdx[2]]);
+}
+
+// Color of the contour
+void MyFreenectDevice::contourColor( Detection &newDetection)
+{
+   vector<Point> contour;
+   newDetection.getVertices(contour);
+   Mat contourMask = Mat::zeros(ownMat.size(), CV_8UC1);
+   Scalar color(255,255,255);
+
+   // Create a mask of a filled contour
+   fillConvexPoly(contourMask, contour.data(), 
+                  contour.size(), color);
+
+   Scalar contourMean;
+   Scalar contourStd;
+   meanStdDev(rgbMat, contourMean, contourStd, contourMask);
+
+   // Set the standard deviation and the mean
+   newDetection.setMean( contourMean );
+   newDetection.setStdDev( contourStd );
+
 }
 
 // Filter the feed to get orange only 

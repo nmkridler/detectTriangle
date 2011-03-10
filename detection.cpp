@@ -10,6 +10,23 @@ void Detection::getDistance( vector<float> &distance ) const
    distance = m_distance;
 }
 
+// Get distance to vertices
+void Detection::getLengths( vector<float> &length ) const
+{ 
+   length = m_sideLength;
+}
+// Mean
+void Detection::getMean( Scalar &meanVal ) const
+{
+   meanVal = m_mean;
+}
+
+// Standard deviation
+void Detection::getStdDev( Scalar &stdVal ) const
+{
+   stdVal = m_stddev;
+}
+
 // Center of mass
 void Detection::getCentMass( Point &centMass ) const
 {
@@ -23,9 +40,9 @@ void Detection::getColor( Scalar &color ) const
 }
       
 // Get Area
-void Detection::getArea( float &area) const
+float Detection::getArea() const
 { 
-   area = m_area; 
+   return m_area; 
 }
 
 // Get Vertices
@@ -109,6 +126,7 @@ void Detection::setRightAngle()
            float vNorm = sqrt(v.dot(v));
            v.x /= vNorm;
            v.y /= vNorm;
+           v.z /= vNorm;
            u.push_back(v);
          }
       }
@@ -139,6 +157,22 @@ void Detection::setSideLength()
    m_sideLength.push_back(sqrt(v.dot(v)));
    m_sideLength.push_back(sqrt(w.dot(w)));
 
+   // We only need two sides to determine the area
+   float theta = acos(u.dot(v));
+   m_area = m_sideLength[0]*m_sideLength[1]*abs(sin(theta));
+
+}
+
+// Set the mean
+void Detection::setMean( Scalar &meanVal )
+{
+   m_mean = meanVal;
+}
+
+// Set the standard deviation
+void Detection::setStdDev( Scalar &stdVal )
+{
+   m_stddev = stdVal;
 }
 
   
