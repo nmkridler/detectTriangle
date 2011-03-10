@@ -1,3 +1,6 @@
+#ifndef __DETECTION_HPP__
+#define __DETECTION_HPP__
+
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -16,127 +19,60 @@ class Detection
       // Constructor
       Detection(){}
 
-      Detection( vector<Point> &contact): m_contact(contact),
-                                          m_valid(false),
-                                          m_rightAngle(false){}
+      Detection( vector<Point> &contact);
 
       // Getters
       // Get distance to vertices
-      void getDistance( vector<float> &distance ){ distance = m_distance;}
+      void getDistance( vector<float> &distance ) const;
 
       // Center of mass
-      void getCentMass( Point &centMass ){ centMass = m_centMass; }
+      void getCentMass( Point &centMass ) const;
 
       // Get Color
-      void getColor( Scalar &color ){ color = m_color; }
+      void getColor( Scalar &color ) const;
       
       // Get Area
-      void getArea( float &area){ area = m_area; }
+      void getArea( float &area) const;
 
       // Get Vertices
-      void getVertices( vector<Point> &contact ){ contact = m_contact; }
+      void getVertices( vector<Point> &contact ) const;
 
       // Get Valid
-      bool validDetection(){return m_valid;}
+      bool validDetection() const;
 
       // Get hit count
-      unsigned int getMissCount(){return m_missCount;}
+      unsigned int getMissCount() const;
 
       // Increment hit count
-      void addMiss(){ m_missCount++;}
+      void addMiss();
 
       // Setters
-      void setDistance( vector<float> &distance )
-      {
-         m_distance = distance;
-         pixelToMetric();
-      }
-
+      void setDistance( vector<float> &distance );
+    
       // Set Color
-      void setColor( Scalar &color ){m_color = color;}
+      void setColor( Scalar &color );
 
       // Set Area
-      void setArea( float &area ){ m_area = area; }
+      void setArea( float &area );
 
       // Set center of mass
-      void setCentMass( Point &centMass ){ m_centMass = centMass;}
+      void setCentMass( Point &centMass );
 
       // Set valid
-      void setValid( bool valid ){ m_valid = valid; }
+      void setValid( bool valid );
 
       // Set hit count to zero
-      void resetMissCount(){ m_missCount = 0;}
+      void resetMissCount();
 
       // Convert Pixel(X,Y),depth to xyz
-      void pixelToMetric()
-      {
-         // loop through the vertices
-         for( unsigned int idx = 0; idx < m_contact.size(); ++idx)
-         {
-            float xFact = m_distance[idx]/((float)fx_d);
-            float yFact = m_distance[idx]/((float)fy_d);
-            Point3f xyzPt(xFact*((float)m_contact[idx].x - (float)cx_d), 
-                          yFact*((float)m_contact[idx].y - (float)cy_d),
-                          m_distance[idx]);
-            m_xyz.push_back(xyzPt);
-         }
-         setRightAngle();
-         setSideLength();
-      } 
-
+      void pixelToMetric();
+   
       // Determine if it has a right angle
-      void setRightAngle()
-      {
-         m_rightAngle = false;
-         // Calculate the angle for each vertex
-         unsigned int idx = 0;
-         while( idx < m_contact.size() )
-         {
-            vector<Point3f> u;
-            for( unsigned int jdx = 0; jdx < m_contact.size(); ++jdx)
-            {
-               if( jdx != idx){
-                  //cout << m_xyz[jdx].x - m_xyz[idx].x << " ";
-                  //cout << m_xyz[jdx].y - m_xyz[idx].y << " ";
-                  //cout << m_xyz[jdx].z - m_xyz[idx].z << endl;
-                  Point3f v(m_xyz[jdx].x - m_xyz[idx].x,
-                            m_xyz[jdx].y - m_xyz[idx].y,
-                            m_xyz[jdx].z - m_xyz[idx].z);
-                  float vNorm = sqrt(v.dot(v));
-                  v.x /= vNorm;
-                  v.y /= vNorm;
-                  u.push_back(v);
-               }
-            }
-            // Calculate the angle between the two vectors
-            float thetaDiff = abs(acos(u[0].dot(u[1])) - fPi/2.0);
-            if( thetaDiff*180.0/fPi < 10.0) m_rightAngle = true;
-            ++idx;
-         } 
-      }
-
+      void setRightAngle();
+    
       // Set side lengths
-      void setSideLength()
-      {
-         // Combos: 0,1 - 1,2 - 2,0
-         Point3f u(m_xyz[0].x - m_xyz[1].x,
-                   m_xyz[0].y - m_xyz[1].y,
-                   m_xyz[0].z - m_xyz[1].z);
-         
-         Point3f v(m_xyz[2].x - m_xyz[1].x,
-                   m_xyz[2].y - m_xyz[1].y,
-                   m_xyz[2].z - m_xyz[1].z);
-
-         Point3f w(m_xyz[2].x - m_xyz[0].x,
-                   m_xyz[2].y - m_xyz[0].y,
-                   m_xyz[2].z - m_xyz[0].z);
- 
-         m_sideLength.push_back(sqrt(u.dot(u)));
-         m_sideLength.push_back(sqrt(v.dot(v)));
-         m_sideLength.push_back(sqrt(w.dot(w)));
-
-      }
-
+      void setSideLength();
+     
       // Get right angle flag
       bool isRightTriangle(){ return m_rightAngle; }
       // Destructor
@@ -155,3 +91,5 @@ class Detection
       unsigned int    m_missCount;       // Number of misses 
 
 };
+
+#endif
