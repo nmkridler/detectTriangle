@@ -1,4 +1,5 @@
 #include "kinectdevice.hpp"
+#include "constants.hpp"
 
 // Constructor
 MyFreenectDevice::MyFreenectDevice(freenect_context *_ctx, int _index)
@@ -180,7 +181,7 @@ void MyFreenectDevice::getContour(){
          approxPolyDP(Mat(contours[idx]), approx, 5, true);
          double areaIdx = contourArea(approx);
          // Create a mask
-         if( areaIdx > 100.0 ){
+         if( areaIdx > TARGET_PIXEL_THRESH ){
             processContour(approx);
          }
          idx++;
@@ -224,12 +225,12 @@ void MyFreenectDevice::processContour( const vector<Point> &contour )
             // Calculate the distance
             int dist = sqrt( pow(detectMass.x - triangleCenter.x,2) +
                              pow(detectMass.y - triangleCenter.y,2));
-              
+             
             // Take everything within 10 pixels to be the same
-            if( dist < 10 ){
+            if( dist < TARGET_RELATED_DIST ){
                foundMatch = true;
-               m_triangle[dIdx].resetMissCount();  // reset miss
-               m_triangle[dIdx].setValid(foundMatch);
+               initializeDetection(newDetection);
+               m_triangle[dIdx] = newDetection; 
             }
             ++dIdx;
          } // end loop over detections
@@ -241,9 +242,7 @@ void MyFreenectDevice::processContour( const vector<Point> &contour )
       } // End check for existing
    } // End check for valid
    // Make sure we don't have too many detections
-   if(m_triangle.size() > 10)
-      cout << "Too many" << " " << m_triangle.size() << endl;
-   while( m_triangle.size() > 10 )
+   while( m_triangle.size() > MAX_DETECTIONS )
    {
       m_triangle.pop_back();
    }
@@ -275,6 +274,9 @@ void MyFreenectDevice::initializeDetection( Detection& newDetection)
       distance.push_back(pixelDepth(triangle[idx]));
    }
    newDetection.setDistance(distance);
+
+   // Set the mean and standard deviation of the color
+   contourColor(newDetection);
 }
 //###############################################################
 // resetDetections
@@ -302,7 +304,7 @@ void MyFreenectDevice::reduceDetections()
    for( unsigned int idx = 0; idx < m_triangle.size(); ++idx)
    {
      // Check the hit Count
-     if( m_triangle[idx].getMissCount() > 10 )
+     if( m_triangle[idx].getMissCount() > MAX_MISS_THRESH )
          m_triangle[idx].setValid(false);
 
      if( !m_triangle[idx].isRightTriangle())
@@ -353,7 +355,11 @@ bool MyFreenectDevice::validTriangle( const vector<Point> &contour,
    {
       if( pointPolygonTest(Mat(triangle),contour[idx],false) < 0.0)
          foundStray = true;
+
+      
    }
+
+
    return !foundStray;
 }
 
@@ -446,8 +452,16 @@ void MyFreenectDevice::contourColor( Detection &newDetection)
 
    Scalar contourMean;
    Scalar contourStd;
-   meanStdDev(rgbMat, contourMean, contourStd, contourMask);
+   Mat tmpImg;
+   cvtColor(rgbMat, tmpImg, CV_RGB2HSV);
+   meanStdDev(tmpImg, contourMean, contourStd, contourMask);
 
+   //cout << "Mean: ";
+   //cout << contourMean[0] << " " << contourMean[1] << " " << contourMean[2];
+   //cout << endl;
+   //cout << "Sig: ";
+   //cout << contourStd[0] << " " << contourStd[1] << " " << contourStd[2];
+   //cout << endl;
    // Set the standard deviation and the mean
    newDetection.setMean( contourMean );
    newDetection.setStdDev( contourStd );
@@ -465,7 +479,7 @@ void MyFreenectDevice::filterOrange( Mat& output)
    // Create a mask for the orange color
    Mat orangeImg = Mat::zeros(tmpImg.size(), CV_8UC1);
    Mat orangeMsk(ownMat.size(), CV_8UC1);
-   inRange(tmpImg, Scalar(0,130,200), Scalar(30,210,255), orangeMsk);
+   inRange(tmpImg, HSV_LOWER, HSV_UPPER, orangeMsk);
 
    // Dilate the mask and set to 255
    dilate(orangeMsk,orangeMsk,Mat());
@@ -473,7 +487,11 @@ void MyFreenectDevice::filterOrange( Mat& output)
 
    // Find the non orange pixels and set to 0
    inRange(orangeImg,Scalar(0),Scalar(254),orangeMsk);
+   erode(orangeMsk,orangeMsk,Mat());
+   dilate(orangeMsk,orangeMsk,Mat());
+
    ownMat.setTo(Scalar(0,0,0),orangeMsk);
+   
    ownMat.copyTo(output);
 }
 

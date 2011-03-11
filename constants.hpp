@@ -1,6 +1,19 @@
+#ifndef __CONSTANTS_HPP__
+#define __CONSTANTS_HPP__
+
+#include <cv.h>
+
+using namespace cv;
+//
+// The constants used to convert from pixel,depth to XYZ
+// can be found at
+// nicolas.burrus.name/index.php/Research/KinectCalibration
+//
 namespace KinectConstants
 {
    const float  fPi    =  3.14159265;
+
+   // Constants for RGB conversion
    const double fx_rgb =  5.2921508098293293e+02;
    const double fy_rgb =  5.2556393630057437e+02;
    const double cx_rgb =  3.2894272028759258e+02;
@@ -11,6 +24,7 @@ namespace KinectConstants
    const double p2_rgb =  1.4371995932897616e-03;
    const double k3_rgb =  9.1192465078713847e-01;
 
+   // Constants for depth conversion
    const double fx_d   =  5.9421434211923247e+02;
    const double fy_d   =  5.9104053696870778e+02;
    const double cx_d   =  3.3930780975300314e+02;
@@ -20,4 +34,16 @@ namespace KinectConstants
    const double p1_d   = -7.6275862143610667e-04;
    const double p2_d   =  5.0350940090814270e-03;
    const double k3_d   = -1.3053628089976321e+00;
+
+   // Thresholds
+   const double       TARGET_PIXEL_THRESH = 400.0;
+   const double       TARGET_AREA_METERS  = 0.05;
+   const int          TARGET_RELATED_DIST = 10;
+   const unsigned int MAX_DETECTIONS      = 100;
+   const unsigned int MAX_MISS_THRESH     = 4;
+   const Scalar       HSV_LOWER(0,100,130);
+   const Scalar       HSV_UPPER(30,255,255);
+
 }
+
+#endif

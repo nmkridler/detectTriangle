@@ -157,10 +157,13 @@ void Detection::setSideLength()
    m_sideLength.push_back(sqrt(v.dot(v)));
    m_sideLength.push_back(sqrt(w.dot(w)));
 
+   //cout << "Length: ";
+   //cout << sqrt(u.dot(u)) << " " << sqrt(v.dot(v)) << " ";
+   //cout << sqrt(w.dot(w)) << " Area: ";
    // We only need two sides to determine the area
    float theta = acos(u.dot(v));
    m_area = m_sideLength[0]*m_sideLength[1]*abs(sin(theta));
-
+   //cout << m_area << endl;
 }
 
 // Set the mean

@@ -28,10 +28,13 @@ int main(int argc, char **argv) {
 
     // Generate windows and start the feed
     namedWindow("rgb and orange",CV_WINDOW_AUTOSIZE);
-    namedWindow("depth",CV_WINDOW_AUTOSIZE);
+    //namedWindow("depth",CV_WINDOW_AUTOSIZE);
     device.startVideo();
     device.startDepth();
 
+    bool orangeFilter = true;
+    int  key;
+    double freenect_angle = 0;
     // As long as the program is alive...
     while (!die) {
         // get frames and push to screen
@@ -39,7 +42,8 @@ int main(int argc, char **argv) {
 
         // Triangle detection
         device.setOwnMat();
-        //device.filterOrange(ownMat);  // Get only the orange pixels
+        // Get only the orange pixels
+        if(orangeFilter) device.filterOrange(ownMat);
         device.contourImg(ownMat);    // contour the image
     	device.getDepth(depthMat);
         device.depthViewColor(depthf);
@@ -51,15 +55,39 @@ int main(int argc, char **argv) {
         rgbMat.copyTo( leftSide);
         ownMat.copyTo(rightSide);
         imshow("rgb and orange", bigMat); 
-        imshow("depth",depthf);
-	if(cvWaitKey(30) >= 0){
+        //imshow("depth",depthf);
+        key = cvWaitKey(10);
+	if(key == 27){
           cvDestroyWindow("rgb and orange");
-          cvDestroyWindow("depth");
+          //cvDestroyWindow("depth");
           device.stopVideo();
           device.stopDepth();
           break;
         }
-           
+        switch(key){
+           case 'f':
+              cout << "Toggle Orange Filter " << !orangeFilter << endl;
+              orangeFilter = !orangeFilter;
+             
+           case 'w':
+              freenect_angle++;
+              if (freenect_angle > 30){
+                 freenect_angle = 30;
+              }
+              device.setTiltDegrees(freenect_angle);
+              break; 
+           case 'x': 
+              freenect_angle--;
+              if (freenect_angle < -30){
+                 freenect_angle = -30;
+              }
+              device.setTiltDegrees(freenect_angle);
+              break;
+           case 's': 
+              freenect_angle = 0;
+              device.setTiltDegrees(freenect_angle);
+              break;
+        }
     }
     // Shut down
     return 0;
