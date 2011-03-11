@@ -2,7 +2,9 @@
 #include "detection.hpp"
 Detection::Detection( vector<Point> &contact): m_contact(contact),
                                                m_valid(false),
-                                               m_rightAngle(false){}
+                                               m_rightAngle(false),
+                                               m_areaSum(0),
+                                               m_hitCount(0){}
 
 // Get distance to vertices
 void Detection::getDistance( vector<float> &distance ) const
@@ -40,9 +42,15 @@ void Detection::getColor( Scalar &color ) const
 }
       
 // Get Area
-float Detection::getArea() const
-{ 
-   return m_area; 
+float Detection::getArea() 
+{
+   float area = 0.0;
+   if( m_hitCount > 0){
+      area = m_areaSum/((float)m_hitCount);
+   }
+   setArea(area);
+   return area;
+   
 }
 
 // Get Vertices
@@ -63,8 +71,14 @@ unsigned int Detection::getMissCount() const
    return m_missCount;
 }
 
+unsigned int Detection::getHitCount() const 
+{
+   return m_hitCount;
+}
 // Increment hit count
 void Detection::addMiss(){ m_missCount++;}
+
+void Detection::addHit(){ m_hitCount++;}
 
 // Setters
 void Detection::setDistance( vector<float> &distance )
@@ -157,13 +171,9 @@ void Detection::setSideLength()
    m_sideLength.push_back(sqrt(v.dot(v)));
    m_sideLength.push_back(sqrt(w.dot(w)));
 
-   //cout << "Length: ";
-   //cout << sqrt(u.dot(u)) << " " << sqrt(v.dot(v)) << " ";
-   //cout << sqrt(w.dot(w)) << " Area: ";
    // We only need two sides to determine the area
    float theta = acos(u.dot(v));
-   m_area = m_sideLength[0]*m_sideLength[1]*abs(sin(theta));
-   //cout << m_area << endl;
+   m_areaSum += m_sideLength[0]*m_sideLength[1]*abs(sin(theta));
 }
 
 // Set the mean
@@ -176,6 +186,22 @@ void Detection::setMean( Scalar &meanVal )
 void Detection::setStdDev( Scalar &stdVal )
 {
    m_stddev = stdVal;
+}
+
+float Detection::getScore()
+{
+   float colorScore = 0;
+   colorScore += (float)m_stddev[0];
+   colorScore += (float)m_stddev[1];
+   colorScore += (float)m_stddev[2];
+   colorScore += abs((float)(m_mean[0] - TARGET_COLOR[0]));
+   colorScore += abs((float)(m_mean[1] - TARGET_COLOR[1]));
+   colorScore += abs((float)(m_mean[2] - TARGET_COLOR[2]));
+
+   float areaScore = abs(m_area - TARGET_AREA_METERS)/TARGET_AREA_METERS;
+
+   return areaScore*colorScore;
+   
 }
 
   

@@ -35,16 +35,32 @@ int main(int argc, char **argv) {
     bool orangeFilter = true;
     int  key;
     double freenect_angle = 0;
+    int iter = 0;
+    bool findTriangle = false;
     // As long as the program is alive...
     while (!die) {
+        ++iter;
+        if( iter == 10 ) findTriangle = true;
         // get frames and push to screen
     	device.getVideo(rgbMat);
 
         // Triangle detection
-        device.setOwnMat();
+        if( iter == 0 ){
+           device.setOwnMat();
+        }else{
+           device.accumOwnMat();
+        }
+        
         // Get only the orange pixels
-        if(orangeFilter) device.filterOrange(ownMat);
-        device.contourImg(ownMat);    // contour the image
+        device.filterOrange(ownMat);
+        if (orangeFilter){
+           device.contourImg();    // contour the image
+           Point cMass;
+           device.getDetectCM(cMass);
+           circle(rgbMat, cMass, 60, Scalar(0,0,255),5);
+           findTriangle = false;
+           iter = -1;
+        }
     	device.getDepth(depthMat);
         device.depthViewColor(depthf);
     	//depthMat.convertTo(depthf, CV_8UC1, 255.0/2048.0);

@@ -44,6 +44,8 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
       bool getVideo(Mat& output);
 
       void setOwnMat( void );
+      
+      void accumOwnMat( void );
 
       bool getDepth(Mat& output);
 
@@ -128,7 +130,9 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
       // 
       //###############################################################
       void centerOfMass( const vector<Point> &contour, Point &cMass);
-   
+  
+      void getDetectCM( Point &cMass ) const;
+ 
       //###############################################################
       // pixelDepth
       //
@@ -152,7 +156,7 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
       // Set the color mean and standard deviation of the object
       void contourColor( Detection &newDetection);
  
-      void contourImg(Mat& output);
+      void contourImg();
      
 
    private:
@@ -167,6 +171,7 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
       Mutex m_depth_mutex;
       bool m_new_rgb_frame;
       bool m_new_depth_frame;
+      Point m_cMass;
 };
 
 #endif

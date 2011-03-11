@@ -74,6 +74,13 @@ void MyFreenectDevice::setOwnMat( void ) {
    m_rgb_mutex.unlock();
 }
 
+void MyFreenectDevice::accumOwnMat( void ) {
+   Mat tmpMat;
+   m_rgb_mutex.lock();
+   cvtColor(rgbMat, tmpMat, CV_RGB2BGR);
+   m_rgb_mutex.unlock();
+   ownMat += tmpMat;
+}
 bool MyFreenectDevice::getDepth(Mat& output) {
    m_depth_mutex.lock();
    if(m_new_depth_frame) {
@@ -181,7 +188,7 @@ void MyFreenectDevice::getContour(){
          approxPolyDP(Mat(contours[idx]), approx, 5, true);
          double areaIdx = contourArea(approx);
          // Create a mask
-         if( areaIdx > TARGET_PIXEL_THRESH ){
+         if( areaIdx > TARGET_PIXEL_THRESH && approx.size() == 3 ){
             processContour(approx);
          }
          idx++;
@@ -200,7 +207,8 @@ void MyFreenectDevice::processContour( const vector<Point> &contour )
 {
    // Approximate the object with a triangle
    vector<Point> approxTriangle;
-   reduceContour( contour, approxTriangle );
+   //reduceContour( contour, approxTriangle );
+   approxTriangle = contour;
    Point contourCenter(0,0);
    Point triangleCenter(0,0);
    centerOfMass(contour,contourCenter);
@@ -229,8 +237,10 @@ void MyFreenectDevice::processContour( const vector<Point> &contour )
             // Take everything within 10 pixels to be the same
             if( dist < TARGET_RELATED_DIST ){
                foundMatch = true;
+               newDetection.addHit();
                initializeDetection(newDetection);
-               m_triangle[dIdx] = newDetection; 
+               m_triangle[dIdx] = newDetection;
+                
             }
             ++dIdx;
          } // end loop over detections
@@ -329,14 +339,28 @@ void MyFreenectDevice::outputDetections(Mat& output)
    Mat dst = Mat::zeros(output.size(), CV_8UC1);
    Scalar color(255);
 
+   float minScore = 0;
+   unsigned int minIdx = 0;
    // Loop over the detections
    for( unsigned int dIdx = 0; dIdx < m_triangle.size(); ++dIdx)
    {
-       vector<Point> newObject;
-       m_triangle[dIdx].getVertices(newObject);
-       fillConvexPoly(dst, newObject.data(), 
-                      newObject.size(), color);
+       //if( dIdx == 0 ){
+       //   m_triangle[dIdx].getCentMass(m_cMass);
+       //   cout << "Area: " << m_triangle[dIdx].getArea() << endl;
+       //}
+       //vector<Point> newObject;
+       //m_triangle[dIdx].getVertices(newObject);
+       //fillConvexPoly(dst, newObject.data(), 
+       //               newObject.size(), color);
+       float score = m_triangle[dIdx].getScore();
+       if( dIdx == 0 ) minScore = score;
+      
+       if( score < minScore ){
+          minScore = score;
+          minIdx   = dIdx;
+       }
    }
+   m_triangle[minIdx].getCentMass(m_cMass);
    dst.copyTo(output); // Copy to output
      
 }
@@ -495,7 +519,7 @@ void MyFreenectDevice::filterOrange( Mat& output)
    ownMat.copyTo(output);
 }
 
-void MyFreenectDevice::contourImg(Mat& output)
+void MyFreenectDevice::contourImg()
 {
    // Create mats to hold the contours and a mask
    Mat contour, mask;
@@ -508,20 +532,11 @@ void MyFreenectDevice::contourImg(Mat& output)
    resetDetections();
    reduceDetections();
    outputDetections(contour);
-   // Set OwnMat again
-   setOwnMat();
-
-   // Mask out everything but the contour
-   inRange(contour, Scalar(0), Scalar(254), mask);
-   ownMat.setTo(Scalar(0,0,0),mask);
-   ownMat.copyTo(output);
-   //inRange(contour, Scalar(254), Scalar(256), mask);
-   //Scalar matSum = mean(tmpImg,mask);
-   //cout << matSum[0] << " " << matSum[1] << " " << matSum[2] << endl;
-   //Scalar depSum = mean(depthMat,mask);
-   //cvWaitKey(100);
-   //int depIdx = (int)depSum[0] - 1;
-   //if( depIdx >= 0 ) cout << "Depth: " << m_gamma[depIdx] << endl;
+ 
 }
 
+void MyFreenectDevice::getDetectCM( Point &cMass) const
+{
+   cMass = m_cMass;
+}
 
