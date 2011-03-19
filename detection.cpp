@@ -1,5 +1,5 @@
 
-#include "detection.hpp"
+#include "detection.h"
 Detection::Detection( vector<Point> &contact): m_contact(contact),
                                                m_valid(false),
                                                m_rightAngle(false),
@@ -45,9 +45,11 @@ void Detection::getColor( Scalar &color ) const
 float Detection::getArea() 
 {
    float area = 0.0;
+   area = m_areaSum;
    if( m_hitCount > 0){
-      area = m_areaSum/((float)m_hitCount);
+      area /= ((float)m_hitCount);
    }
+   
    setArea(area);
    return area;
    
@@ -198,8 +200,9 @@ float Detection::getScore()
    colorScore += abs((float)(m_mean[1] - TARGET_COLOR[1]));
    colorScore += abs((float)(m_mean[2] - TARGET_COLOR[2]));
 
+   m_area = getArea();
    float areaScore = abs(m_area - TARGET_AREA_METERS)/TARGET_AREA_METERS;
-
+   //cout << "area: " << m_area << endl;
    return areaScore*colorScore;
    
 }

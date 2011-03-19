@@ -1,5 +1,6 @@
-#include "libfreenect.hpp"
-#include "kinectdevice.hpp"
+#include "libfreenect.h"
+#include "kinectdevice.h"
+#include "triangles.h"
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -10,7 +11,6 @@
 
 using namespace cv;
 using namespace std;
-
 
 int main(int argc, char **argv) {
     bool die(false);
@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
 
     // Kinect device
     Freenect::Freenect freenect;
-    MyFreenectDevice& device = freenect.createDevice<MyFreenectDevice>(0);
+    Triangles& device = freenect.createDevice<Triangles>(0);
 
     // Generate windows and start the feed
     namedWindow("rgb and orange",CV_WINDOW_AUTOSIZE);
@@ -37,33 +37,32 @@ int main(int argc, char **argv) {
     double freenect_angle = 0;
     int iter = 0;
     bool findTriangle = false;
+    Point cMass(0,0);
     // As long as the program is alive...
     while (!die) {
         ++iter;
-        if( iter == 10 ) findTriangle = true;
+        if( iter == 1 ) findTriangle = true;
         // get frames and push to screen
     	device.getVideo(rgbMat);
 
+        device.setOwnMat();
         // Triangle detection
-        if( iter == 0 ){
-           device.setOwnMat();
-        }else{
-           device.accumOwnMat();
-        }
+        //if( iter == 0 ){
+        //}else{
+        //   device.accumOwnMat();
+       // }
         
         // Get only the orange pixels
         device.filterOrange(ownMat);
-        if (orangeFilter){
+        if (findTriangle){
            device.contourImg();    // contour the image
-           Point cMass;
            device.getDetectCM(cMass);
-           circle(rgbMat, cMass, 60, Scalar(0,0,255),5);
            findTriangle = false;
            iter = -1;
         }
-    	device.getDepth(depthMat);
-        device.depthViewColor(depthf);
-    	//depthMat.convertTo(depthf, CV_8UC1, 255.0/2048.0);
+        if (device.foundTarget() ) circle(rgbMat, cMass, 60, Scalar(0,0,255),5);
+    	//device.getDepth(depthMat);
+        //device.depthViewColor(depthf);
         Rect leftROI(   Point(0,0),rgbMat.size());
         Rect rightROI(Point(640,0),rgbMat.size());
         Mat leftSide  = bigMat( leftROI);
