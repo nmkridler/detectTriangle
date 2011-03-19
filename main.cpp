@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
        // }
         
         // Get only the orange pixels
-        device.filterOrange(ownMat);
+        if(orangeFilter) device.filterOrange(ownMat);
         if (findTriangle){
            device.contourImg();    // contour the image
            device.getDetectCM(cMass);
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
            case 'f':
               cout << "Toggle Orange Filter " << !orangeFilter << endl;
               orangeFilter = !orangeFilter;
-             
+              break; 
            case 'w':
               freenect_angle++;
               if (freenect_angle > 30){

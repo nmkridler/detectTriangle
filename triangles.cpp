@@ -5,19 +5,6 @@
 Triangles::Triangles(freenect_context *_ctx, int _index)
         : MyFreenectDevice(_ctx, _index)         // Device Constructor
 {
-
-   // Create a triangle
-   Point a0(298, 98), a1(344,102), a2(341,125);
-           
-   // First triangle
-   vector<Point> initTriangle; 
-   initTriangle.push_back(a0);
-   initTriangle.push_back(a1);
-   initTriangle.push_back(a2);
-   Detection firstDetection(initTriangle);
-   m_triangle.push_back(initTriangle);
-
-
 }
 
 //###############################################################
@@ -60,7 +47,7 @@ void Triangles::getContour(){
          approxPolyDP(Mat(contours[idx]), approx, 5, true);
          double areaIdx = contourArea(approx);
          // Create a mask
-         if( areaIdx > TARGET_PIXEL_THRESH && approx.size() == 3 ){
+         if( areaIdx > TARGET_PIXEL_THRESH  ){
             processContour(approx);
          }
          idx++;
@@ -89,9 +76,10 @@ void Triangles::processContour( const vector<Point> &contour )
    {
       Detection newDetection(approxTriangle);
       if (m_triangle.size() == 0){
-         newDetection.addHit();
          initializeDetection(newDetection);
          m_triangle.push_back(newDetection);
+         uint64_t lastIdx = m_triangle.size();
+         m_triangle[lastIdx].addHit(); 
       }
       else{
          // Loop through the detections
@@ -110,9 +98,8 @@ void Triangles::processContour( const vector<Point> &contour )
             // Take everything within 10 pixels to be the same
             if( dist < TARGET_RELATED_DIST ){
                foundMatch = true;
-               newDetection.addHit();
-               initializeDetection(newDetection);
-               m_triangle[dIdx] = newDetection;
+               m_triangle[dIdx].addHit();
+               initializeDetection(m_triangle[dIdx]);
                 
             }
             ++dIdx;
@@ -121,6 +108,8 @@ void Triangles::processContour( const vector<Point> &contour )
             newDetection.addHit();
             initializeDetection(newDetection);
             m_triangle.push_back(newDetection);
+            uint64_t lastIdx = m_triangle.size();
+            m_triangle[lastIdx].addHit(); 
             
          }
       } // End check for existing
@@ -402,10 +391,14 @@ void Triangles::contourImg()
 
    // Create the contour image
    cvtColor(ownMat,contour,CV_BGR2GRAY);
-   resetDetections();
-   reduceDetections();
-   outputDetections(contour);
- 
+   if( m_triangle.size() > 0){
+
+      resetDetections();
+      reduceDetections();
+      outputDetections(contour);
+
+   }
+   else m_foundTarget = false;
 }
 
 void Triangles::getDetectCM( Point &cMass) const
