@@ -46,9 +46,7 @@ driver::driver(int w, int h)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
     // Get webcam feed
-    Mat frame;
     device->getVideo(frame);
-    flip(frame,frame,-1);
 
     glPixelStorei(GL_UNPACK_ALIGNMENT,1);
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, _iWidth, _iHeight, 
@@ -93,9 +91,8 @@ driver::driver(int w, int h)
 void driver::update()
 {   
     // Get the opencv frame
-    Mat frame;
     device->getVideo(frame);
-    flip(frame,frame,-1);
+
     // store the window viewport dimensions so we can reset them,
     // and set the viewport to the dimensions of our texture
     int vp[4];
@@ -171,7 +168,6 @@ void driver::display()
         glTexCoord2f(0, 1); glVertex3f(-1,  1, -0.5f);
     }
     glEnd();
-    cvWaitKey(30);
     glDisable(GL_TEXTURE_2D);
 }
 

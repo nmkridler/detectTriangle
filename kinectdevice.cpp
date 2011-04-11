@@ -47,6 +47,7 @@ bool MyFreenectDevice::getVideo(Mat& output) {
    m_rgb_mutex.lock();
    if(m_new_rgb_frame) {
       cvtColor(rgbMat, output, CV_RGB2BGR);
+      flip(output,output,-1);
       m_new_rgb_frame = false;
       m_rgb_mutex.unlock();
       return true;

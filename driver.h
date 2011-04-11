@@ -51,6 +51,7 @@ protected: // data
 
     Freenect::Freenect freenect;
     Triangles*         device;
+    Mat           frame;
 };
 #endif
 
