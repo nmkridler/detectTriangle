@@ -112,8 +112,8 @@ void Detection::pixelToMetric()
    {
       float xFact = m_distance[idx]/((float)fx_d);
       float yFact = m_distance[idx]/((float)fy_d);
-      Point3f xyzPt(xFact*((float)m_contact[idx].x - (float)cx_d), 
-                    yFact*((float)m_contact[idx].y - (float)cy_d),
+      Point3f xyzPt(((float)m_contact[idx].x - (float)cx_d)*xFact, 
+                    ((float)m_contact[idx].y - (float)cy_d)*yFact,
                     m_distance[idx]);
       m_xyz.push_back(xyzPt);
    }
@@ -133,9 +133,6 @@ void Detection::setRightAngle()
       for( unsigned int jdx = 0; jdx < m_contact.size(); ++jdx)
       {
          if( jdx != idx){
-           //cout << m_xyz[jdx].x - m_xyz[idx].x << " ";
-           //cout << m_xyz[jdx].y - m_xyz[idx].y << " ";
-           //cout << m_xyz[jdx].z - m_xyz[idx].z << endl;
            Point3f v(m_xyz[jdx].x - m_xyz[idx].x,
                      m_xyz[jdx].y - m_xyz[idx].y,
                      m_xyz[jdx].z - m_xyz[idx].z);
@@ -173,6 +170,12 @@ void Detection::setSideLength()
    m_sideLength.push_back(sqrt(v.dot(v)));
    m_sideLength.push_back(sqrt(w.dot(w)));
 
+   // Lengths
+   cout << "Lengths: ";
+   cout << sqrt(u.dot(u)) << " ";
+   cout << sqrt(v.dot(v)) << " ";
+   cout << sqrt(w.dot(w)) << endl;
+   
    // We only need two sides to determine the area
    float theta = acos(u.dot(v));
    m_areaSum += m_sideLength[0]*m_sideLength[1]*abs(sin(theta));
@@ -193,16 +196,16 @@ void Detection::setStdDev( Scalar &stdVal )
 float Detection::getScore()
 {
    float colorScore = 0;
-   colorScore += (float)m_stddev[0];
-   colorScore += (float)m_stddev[1];
-   colorScore += (float)m_stddev[2];
-   colorScore += abs((float)(m_mean[0] - TARGET_COLOR[0]));
-   colorScore += abs((float)(m_mean[1] - TARGET_COLOR[1]));
-   colorScore += abs((float)(m_mean[2] - TARGET_COLOR[2]));
+   colorScore += abs((float)(m_mean[0] - TARGET_COLOR[0]))*
+                     (float)m_stddev[0];
+   colorScore += abs((float)(m_mean[1] - TARGET_COLOR[1]))*
+                     (float)m_stddev[1];
+   colorScore += abs((float)(m_mean[2] - TARGET_COLOR[2]))*
+                     (float)m_stddev[2];
 
    m_area = getArea();
    float areaScore = abs(m_area - TARGET_AREA_METERS)/TARGET_AREA_METERS;
-   //cout << "area: " << m_area << endl;
+   //cout << "Score: " << areaScore << endl;
    return areaScore*colorScore;
    
 }

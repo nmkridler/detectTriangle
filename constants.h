@@ -37,7 +37,7 @@ namespace KinectConstants
 
    // Thresholds
    const double       TARGET_PIXEL_THRESH = 400.0;
-   const double       TARGET_AREA_METERS  = 0.05;
+   const double       TARGET_AREA_METERS  = 0.0287625;
    const int          TARGET_RELATED_DIST = 10;
    const unsigned int MAX_DETECTIONS      = 100;
    const unsigned int MAX_MISS_THRESH     = 4;

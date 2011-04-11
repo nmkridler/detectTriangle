@@ -202,9 +202,10 @@ void Triangles::outputDetections(Mat& output)
    Mat dst = Mat::zeros(output.size(), CV_8UC1);
    Scalar color(255);
 
-   float minScore = 0;
-   unsigned int minIdx = 0;
+   //float minScore = 0;
+   //unsigned int minIdx = 0;
    // Loop over the detections
+   m_cMass.clear();
    for( unsigned int dIdx = 0; dIdx < m_triangle.size(); ++dIdx)
    {
        //if( dIdx == 0 ){
@@ -215,16 +216,19 @@ void Triangles::outputDetections(Mat& output)
        //m_triangle[dIdx].getVertices(newObject);
        //fillConvexPoly(dst, newObject.data(), 
        //               newObject.size(), color);
-       float score = m_triangle[dIdx].getScore();
-       if( dIdx == 0 ) minScore = score;
+       Point cMass;
+       m_triangle[dIdx].getCentMass(cMass);
+       m_cMass.push_back(cMass);
+     //  float score = m_triangle[dIdx].getScore();
+       //if( dIdx == 0 ) minScore = score;
       
-       if( score < minScore ){
-          minScore = score;
-          minIdx   = dIdx;
-       }
+       //if( score < minScore ){
+       //   minScore = score;
+       //   minIdx   = dIdx;
+      // }
             
    }
-   m_triangle[minIdx].getCentMass(m_cMass);
+   //m_triangle[minIdx].getCentMass(m_cMass);
    dst.copyTo(output); // Copy to output
      
 }
@@ -401,7 +405,7 @@ void Triangles::contourImg()
    else m_foundTarget = false;
 }
 
-void Triangles::getDetectCM( Point &cMass) const
+void Triangles::getDetectCM( vector<Point> &cMass) const
 {
    cMass = m_cMass;
 }

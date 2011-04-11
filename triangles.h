@@ -96,7 +96,7 @@ class Triangles : public MyFreenectDevice
       void centerOfMass( const vector<Point> &contour, Point &cMass);
   
       // Center of mass getter
-      void getDetectCM( Point &cMass ) const;
+      void getDetectCM( vector<Point> &cMass ) const;
  
       //###############################################################
       // pixelDepth
@@ -124,10 +124,10 @@ class Triangles : public MyFreenectDevice
       void contourImg();
     
       bool foundTarget(); 
-
+   
    private:
       vector<Detection>  m_triangle;
-      Point              m_cMass;
+      vector<Point>      m_cMass;
       bool               m_foundTarget;
 };
 
