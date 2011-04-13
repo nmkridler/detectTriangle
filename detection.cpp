@@ -171,10 +171,10 @@ void Detection::setSideLength()
    m_sideLength.push_back(sqrt(w.dot(w)));
 
    // Lengths
-   cout << "Lengths: ";
-   cout << sqrt(u.dot(u)) << " ";
-   cout << sqrt(v.dot(v)) << " ";
-   cout << sqrt(w.dot(w)) << endl;
+   //cout << "Lengths: ";
+   //cout << sqrt(u.dot(u)) << " ";
+   //cout << sqrt(v.dot(v)) << " ";
+   //cout << sqrt(w.dot(w)) << endl;
    
    // We only need two sides to determine the area
    float theta = acos(u.dot(v));

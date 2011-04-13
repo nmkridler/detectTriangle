@@ -1,7 +1,7 @@
 all: test
 
 CFLAGS=-fPIC -g -Wall `pkg-config --cflags opencv`
-LIBS = `pkg-config --libs opencv`
+LIBS = `pkg-config --libs opencv` -lGLEW -lglut -lGL
 INCLUDE = -I/usr/local/include/libfreenect
 FREE_LIBS = -L/usr/local/lib -lfreenect
 

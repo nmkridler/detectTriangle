@@ -46,8 +46,9 @@ void Triangles::getContour(){
          vector<Point> approx;
          approxPolyDP(Mat(contours[idx]), approx, 5, true);
          double areaIdx = contourArea(approx);
+         
          // Create a mask
-         if( areaIdx > TARGET_PIXEL_THRESH  ){
+         if( areaIdx > TARGET_PIXEL_THRESH ){
             processContour(approx);
          }
          idx++;
@@ -72,7 +73,7 @@ void Triangles::processContour( const vector<Point> &contour )
    Point triangleCenter(0,0);
    centerOfMass(contour,contourCenter);
    centerOfMass(approxTriangle,triangleCenter);
-   if( validTriangle(contour, approxTriangle) )
+   if( validTriangle(contour,approxTriangle) )
    {
       Detection newDetection(approxTriangle);
       if (m_triangle.size() == 0){
@@ -197,9 +198,8 @@ void Triangles::reduceDetections()
 //   create a mask with all of the detections
 // 
 //###############################################################
-void Triangles::outputDetections(Mat& output)
+void Triangles::outputDetections()
 {
-   Mat dst = Mat::zeros(output.size(), CV_8UC1);
    Scalar color(255);
 
    //float minScore = 0;
@@ -229,7 +229,6 @@ void Triangles::outputDetections(Mat& output)
             
    }
    //m_triangle[minIdx].getCentMass(m_cMass);
-   dst.copyTo(output); // Copy to output
      
 }
       
@@ -394,12 +393,11 @@ void Triangles::contourImg()
    getContour();
 
    // Create the contour image
-   cvtColor(ownMat,contour,CV_BGR2GRAY);
    if( m_triangle.size() > 0){
 
       resetDetections();
       reduceDetections();
-      outputDetections(contour);
+      outputDetections();
 
    }
    else m_foundTarget = false;

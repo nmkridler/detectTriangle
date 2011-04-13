@@ -25,6 +25,25 @@ static const char *edgeFragSource = {
 };
 //"   gl_FragColor = 8.0 * (c + -0.125 * (bl + l + tl + t + ur + r + br + b));"
 
+// This shader performs RGB normalization.
+static const char *normFragSource = {
+"uniform sampler2D texUnit;"
+"void main(void)"
+"{"
+"   const float offset = 1.0 / 512.0;"
+"   vec2 texCoord = gl_TexCoord[0].xy;"
+"   vec4 c  = texture2D(texUnit, texCoord);"
+"   float cRed = (float)c.r; "
+"   float cGrn = (float)c.g; "
+"   float cBlu = (float)c.b; "
+"   float norm = sqrt(cRed*cRed + cGrn*cGrn + cBlu*cBlu);"
+"   gl_FragColor.a = 1.0;"
+"   gl_FragColor.r = c.r/norm; "
+"   gl_FragColor.g = c.g/norm; "
+"   gl_FragColor.b = c.b/norm; "
+"}"
+};
+
 
 driver::driver(int w, int h)
     : _iWidth(w),
@@ -47,7 +66,7 @@ driver::driver(int w, int h)
 
     // Get webcam feed
     device->getVideo(frame);
-
+   
     glPixelStorei(GL_UNPACK_ALIGNMENT,1);
     //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, _iWidth, _iHeight, 
     //             0, GL_RGB, GL_FLOAT, 0);
@@ -63,7 +82,7 @@ driver::driver(int w, int h)
 
     // Create the edge detection fragment program
     _fragmentShader = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
-    glShaderSourceARB(_fragmentShader, 1, &edgeFragSource, NULL);
+    glShaderSourceARB(_fragmentShader, 1, &normFragSource, NULL);
     glCompileShaderARB(_fragmentShader);
     glAttachObjectARB(_programObject, _fragmentShader);
 
@@ -92,6 +111,23 @@ void driver::update()
 {   
     // Get the opencv frame
     device->getVideo(frame);
+#if 0
+    device->setOwnMat();
+    Mat orangeFrame;
+    frame.copyTo(orangeFrame);
+    device->filterOrange(orangeFrame);
+    device->contourImg();
+    vector<Point> cMass;
+    device->getDetectCM(cMass);
+    //frame.copyTo(orangeFrame);
+    if( device->foundTarget() )
+    {
+       for(unsigned int dIdx = 0; dIdx < cMass.size(); dIdx++)
+       {  
+          circle(orangeFrame, cMass[dIdx], 60, Scalar(0,0,255),5);
+       }
+    }
+#endif
 
     // store the window viewport dimensions so we can reset them,
     // and set the viewport to the dimensions of our texture
@@ -106,7 +142,7 @@ void driver::update()
     glPixelStorei(GL_UNPACK_ALIGNMENT,1);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _iWidth, _iHeight, 
                  0, GL_BGR, GL_UNSIGNED_BYTE, frame.data);
-
+#if 1
     // run the edge detection filter over the geometry texture
     // Activate the edge detection filter program
     glUseProgramObjectARB(_programObject);
@@ -134,7 +170,7 @@ void driver::update()
       
     // disable the filter
     glUseProgramObjectARB(0);
-     
+
     // GPGPU CONCEPT 5: Copy To Texture (CTT) = Feedback.
     // We have just invoked our computation (edge detection) by applying 
     // a fragment program to a viewport-sized quad. The results are now 
@@ -142,10 +178,10 @@ void driver::update()
     // frame buffer to a texture.  This can then be fed back as input
     // for display (in this case) or more computation (see 
     // more advanced samples.)
-
     // update the texture again, this time with the filtered scene
     glBindTexture(GL_TEXTURE_2D, _iTexture);
     glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, _iWidth, _iHeight);
+#endif
         
     // restore the stored viewport dimensions
     glViewport(vp[0], vp[1], vp[2], vp[3]);

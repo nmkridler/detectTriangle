@@ -47,7 +47,7 @@ bool MyFreenectDevice::getVideo(Mat& output) {
    m_rgb_mutex.lock();
    if(m_new_rgb_frame) {
       cvtColor(rgbMat, output, CV_RGB2BGR);
-      flip(output,output,-1);
+      flip(output,output,0);
       m_new_rgb_frame = false;
       m_rgb_mutex.unlock();
       return true;
@@ -60,6 +60,7 @@ bool MyFreenectDevice::getVideo(Mat& output) {
 void MyFreenectDevice::setOwnMat( void ) {
    m_rgb_mutex.lock();
    cvtColor(rgbMat, ownMat, CV_RGB2BGR);
+   flip(ownMat,ownMat,0);
    m_rgb_mutex.unlock();
 }
 
@@ -67,6 +68,7 @@ bool MyFreenectDevice::getDepth(Mat& output) {
    m_depth_mutex.lock();
    if(m_new_depth_frame) {
       depthMat.copyTo(output);
+      flip(ownMat,ownMat,0);
       m_new_depth_frame = false;
       m_depth_mutex.unlock();
       return true;
@@ -128,5 +130,6 @@ void MyFreenectDevice::depthViewColor(Mat& output)
             break; 
       } 
    } 
+   flip(output,output,0);
 }
 

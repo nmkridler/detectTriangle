@@ -76,7 +76,7 @@ class Triangles : public MyFreenectDevice
       //   create a mask with all of the detections
       // 
       //###############################################################
-      void outputDetections(Mat& output);
+      void outputDetections();
      
       //###############################################################
       // validTriangle

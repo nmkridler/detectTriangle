@@ -15,7 +15,6 @@
 
 using namespace cv;
 
-//"   gl_FragColor = 8.0 * (c + -0.125 * (bl + l + tl + t + ur + r + br + b));"
 // This class encapsulates all of the GPGPU functionality of the example.
 class driver
 {
@@ -40,7 +39,6 @@ public: // methods
 
 protected: // data
     int           _iWidth, _iHeight; // The dimensions of our array
-    float         _rAngle;           // used for animation
     
     unsigned int  _iTexture;         // The texture used as a data array
 
@@ -49,9 +47,11 @@ protected: // data
 
     GLint         _texUnit;          // a parameter to the fragment program
 
+    //GLhandleARB   _normPrgObject;    // the program used to update
+    //GLhandleARB   _normFrgShader;
     Freenect::Freenect freenect;
-    Triangles*         device;
-    Mat           frame;
+    Triangles*     device;
+    Mat            frame;
 };
 #endif
 
