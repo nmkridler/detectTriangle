@@ -333,7 +333,7 @@ void Triangles::contourColor( Detection &newDetection)
 {
    vector<Point> contour;
    newDetection.getVertices(contour);
-   Mat contourMask = Mat::zeros(ownMat.size(), CV_8UC1);
+   Mat contourMask = Mat::zeros(rgbMat.size(), CV_8UC1);
    Scalar color(255,255,255);
 
    // Create a mask of a filled contour
@@ -361,9 +361,10 @@ void Triangles::contourColor( Detection &newDetection)
 // Filter the feed to get orange only 
 void Triangles::filterOrange( Mat& output)
 {
-
+    
    // convert RGB to HSV
    Mat tmpHSV, tmpRGB;
+   //equalizeHist(output,tmpRGB);
    cvtColor(output, tmpHSV, CV_BGR2HSV);
 
    // Create a mask for the orange color
@@ -381,7 +382,33 @@ void Triangles::filterOrange( Mat& output)
    dilate(orangeMsk,orangeMsk,Mat());
 
    output.setTo(Scalar(0,0,0),orangeMsk);
-   
+
+    
+}
+
+void Triangles::equalizeRGB(Mat &output)
+{
+   // Initialize the channels
+   Mat rMat(output.size(),CV_8UC1);
+   Mat gMat(output.size(),CV_8UC1);
+   Mat bMat(output.size(),CV_8UC1);
+   Mat rOut(output.size(),CV_8UC1);
+   Mat gOut(output.size(),CV_8UC1);
+   Mat bOut(output.size(),CV_8UC1);
+
+   // Make a vector and split
+   vector<Mat> outMat;
+   outMat.push_back(bMat); 
+   outMat.push_back(gMat); 
+   outMat.push_back(rMat); 
+   split(output, outMat );
+
+   // Equalize and copy to output
+   equalizeHist(rMat,rOut);
+   equalizeHist(gMat,gOut);
+   equalizeHist(bMat,bOut);
+   merge(outMat,output);
+
 }
 
 void Triangles::contourImg()

@@ -124,7 +124,8 @@ class Triangles : public MyFreenectDevice
       void contourImg();
     
       bool foundTarget(); 
-   
+     
+      void equalizeRGB(Mat& output); 
    private:
       vector<Detection>  m_triangle;
       vector<Point>      m_cMass;

@@ -47,6 +47,12 @@ public: // methods
     // Set whether or not you want to see the depth field
     void setDepthFlag();
 
+    // Set whether or not you want to see the orange field
+    void setOrangeFlag();
+
+    // Set whether or not you want to see the input field
+    void resetFlags();
+
     // Create a texture for the image we want to process
     void createImgTexture();
     
@@ -91,7 +97,8 @@ protected: // data
     Mat                bigFrame;          // The output image 
                                           // (left rgb, right out)
     Mat                rgbFrame;          // The RGB frame
-    bool               m_filterOrange;    // Show depth or orange?
+    bool               m_filterOrange;    // Show orange filter?
+    bool               m_showDepth;       // Show depth?
                                       
 };
 #endif

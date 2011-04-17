@@ -29,7 +29,8 @@ static const char *edgeFragSource = {
 driver::driver(int w, int h)
     : _iWidth(w),
       _iHeight(h),
-      m_filterOrange(false)
+      m_filterOrange(false),
+      m_showDepth(false)
 {
     
     // Start the freenect device
@@ -57,6 +58,7 @@ void driver::update()
     // Get the RGB frame and copy to frame for processing
     device->getVideo(rgbFrame);
     rgbFrame.copyTo(frame); 
+    device->equalizeRGB(frame);
     device->filterOrange(frame);   // Get only the orange in HSV
 
     // Run the rgb normalization
@@ -193,9 +195,12 @@ void driver::runDetect()
     // Create an orange frame
     Mat orangeFrame;
     rgbFrame.copyTo(orangeFrame);
-    device->filterOrange(orangeFrame);
-    if( m_filterOrange ) device->depthViewColor(orangeFrame);
-     
+
+    // Equalize the image and 
+    device->equalizeRGB(orangeFrame);
+    if( m_showDepth ) device->depthViewColor(orangeFrame);
+    if( m_filterOrange ) device->filterOrange(orangeFrame);
+
     // Run the detection process
     device->contourImg();
     vector<Point> cMass;
@@ -281,6 +286,18 @@ void driver::setTilt(double &tiltAngle)
 // Set the depth flag
 void driver::setDepthFlag()
 {
-   m_filterOrange = !m_filterOrange;
+   m_showDepth = !m_showDepth;
+   if( m_showDepth && m_filterOrange ) setOrangeFlag();
 }
 
+void driver::setOrangeFlag()
+{
+   m_filterOrange = !m_filterOrange;
+   if( m_showDepth && m_filterOrange ) setDepthFlag();
+}
+
+void driver::resetFlags()
+{
+   m_filterOrange = false;
+   m_showDepth    = false;
+}

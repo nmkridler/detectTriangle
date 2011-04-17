@@ -62,6 +62,12 @@ void keyboard( unsigned char key, int /*x*/, int /*y*/)
         case 'd':
            g_Driver->setDepthFlag();
            break;
+        case 'f':
+           g_Driver->setOrangeFlag();
+           break;
+        case 'e':
+           g_Driver->resetFlags();
+           break;
         case 27:
            exit (0);
 	   break;
