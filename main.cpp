@@ -29,6 +29,7 @@ void display()
     g_Driver->update();  // update the scene and run the edge detect filter
     g_Driver->display(); // display the results
     glutSwapBuffers();
+ 
 }
 
 // GLUT Idle function
@@ -57,6 +58,9 @@ void keyboard( unsigned char key, int /*x*/, int /*y*/)
         case 's': 
            freenect_angle = 0;
            g_Driver->setTilt(freenect_angle);
+           break;
+        case 'd':
+           g_Driver->setDepthFlag();
            break;
         case 27:
            exit (0);
@@ -100,15 +104,17 @@ void initialize()
    }
 
    g_Driver = new driver(640,480);
+    
+
 }
 
 // initGL
 void initGL( int *argc, char** argv)
 {
-   glutInit(argc,argv);
-   glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
-   glutInitWindowSize(640,480);
-   glutCreateWindow("Orange Triangle Detection");
+    glutInit(argc,argv);
+    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
+    glutInitWindowSize(1280,480);
+    glutCreateWindow("Orange Triangle Detection");
 
 }
 
@@ -126,81 +132,7 @@ int main(int argc, char **argv) {
     initialize();
 
     glutMainLoop();
-   
 
-#if 0
-    // Initialize the buffers
-    Mat depthMat(Size(640,480),CV_16UC1);
-    Mat depthf  (Size(640,480),CV_8UC3);
-    Mat rgbMat(Size(640,480),CV_8UC3,Scalar(0));
-    Mat ownMat(Size(640,480),CV_8UC3,Scalar(0));
-    Mat bigMat(Size(1280,480),CV_8UC3,Scalar(0));
-
-    // Kinect device
-    Freenect::Freenect freenect;
-    Triangles& device = freenect.createDevice<Triangles>(0);
-
-    // Generate windows and start the feed
-    namedWindow("rgb and orange",CV_WINDOW_AUTOSIZE);
-    //namedWindow("depth",CV_WINDOW_AUTOSIZE);
-    device.startVideo();
-    device.startDepth();
-
-    bool orangeFilter = true;
-    int  key;
-    double freenect_angle = 0;
-    int iter = 0;
-    bool findTriangle = false;
-    vector<Point> cMass;
-    // As long as the program is alive...
-    while (!die) {
-        ++iter;
-        if( iter == 1 ) findTriangle = true;
-        // get frames and push to screen
-    	device.getVideo(rgbMat);
-
-        device.setOwnMat();
-        // Triangle detection
-        //if( iter == 0 ){
-        //}else{
-        //   device.accumOwnMat();
-       // }
-        
-        // Get only the orange pixels
-        if(orangeFilter) device.filterOrange(ownMat);
-        if (findTriangle){
-           device.contourImg();    // contour the image
-           device.getDetectCM(cMass);
-           findTriangle = false;
-           iter = -1;
-        }
-        if (device.foundTarget() )
-        {
-           for(unsigned int dIdx = 0; dIdx < cMass.size(); dIdx++)
-           {  
-              circle(rgbMat, cMass[dIdx], 60, Scalar(0,0,255),5);
-           }
-        }
-    	//device.getDepth(depthMat);
-        //device.depthViewColor(depthf);
-        Rect leftROI(   Point(0,0),rgbMat.size());
-        Rect rightROI(Point(640,0),rgbMat.size());
-        Mat leftSide  = bigMat( leftROI);
-        Mat rightSide = bigMat(rightROI);
-        rgbMat.copyTo( leftSide);
-        ownMat.copyTo(rightSide);
-        imshow("rgb and orange", bigMat); 
-        //imshow("depth",depthf);
-        key = cvWaitKey(10);
-	if(key == 27){
-          cvDestroyWindow("rgb and orange");
-          //cvDestroyWindow("depth");
-          device.stopVideo();
-          device.stopDepth();
-          break;
-        }
-    }
-#endif
     // Shut down
     return 0;
 }

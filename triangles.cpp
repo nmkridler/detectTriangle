@@ -15,9 +15,10 @@ Triangles::Triangles(freenect_context *_ctx, int _index)
 //###############################################################
 void Triangles::getBinary(Mat& output){
    Mat gray;
+   // At this point ownMat should be the Sobel Filtered image
    cvtColor(ownMat, gray, CV_BGR2GRAY);
-   GaussianBlur(gray, gray, Size(11,11), 1.5, 1.5);
-   Canny(gray, gray, 0, 30, 3);
+   //GaussianBlur(gray, gray, Size(11,11), 1.5, 1.5);
+   //Canny(gray, gray, 0, 30, 3);
    dilate(gray, output, Mat());
    output = output > 128;
 } 
@@ -219,7 +220,7 @@ void Triangles::outputDetections()
        Point cMass;
        m_triangle[dIdx].getCentMass(cMass);
        m_cMass.push_back(cMass);
-     //  float score = m_triangle[dIdx].getScore();
+       //float score = m_triangle[dIdx].getScore();
        //if( dIdx == 0 ) minScore = score;
       
        //if( score < minScore ){
@@ -361,14 +362,14 @@ void Triangles::contourColor( Detection &newDetection)
 void Triangles::filterOrange( Mat& output)
 {
 
-  // convert to HSV
-   Mat tmpImg;
-   cvtColor(ownMat, tmpImg, CV_BGR2HSV);
+   // convert RGB to HSV
+   Mat tmpHSV, tmpRGB;
+   cvtColor(output, tmpHSV, CV_BGR2HSV);
 
    // Create a mask for the orange color
-   Mat orangeImg = Mat::zeros(tmpImg.size(), CV_8UC1);
-   Mat orangeMsk(ownMat.size(), CV_8UC1);
-   inRange(tmpImg, HSV_LOWER, HSV_UPPER, orangeMsk);
+   Mat orangeImg = Mat::zeros(tmpHSV.size(), CV_8UC1);
+   Mat orangeMsk(tmpHSV.size(), CV_8UC1);
+   inRange(tmpHSV, HSV_LOWER, HSV_UPPER, orangeMsk);
 
    // Dilate the mask and set to 255
    dilate(orangeMsk,orangeMsk,Mat());
@@ -379,9 +380,8 @@ void Triangles::filterOrange( Mat& output)
    erode(orangeMsk,orangeMsk,Mat());
    dilate(orangeMsk,orangeMsk,Mat());
 
-   ownMat.setTo(Scalar(0,0,0),orangeMsk);
+   output.setTo(Scalar(0,0,0),orangeMsk);
    
-   ownMat.copyTo(output);
 }
 
 void Triangles::contourImg()

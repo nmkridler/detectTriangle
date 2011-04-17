@@ -17,9 +17,12 @@ MyFreenectDevice::MyFreenectDevice(freenect_context *_ctx, int _index)
    for( unsigned int i = 0 ; i < 2048 ; i++) 
    {
       const float k1 = 1.1863;
-      const float k2 = 2852.5;
+      const float k2 = 2842.5;
       const float k3 = 0.1236;
-      const float v = k3*tanf(i/k2 + k1);
+      //const float a1 = -0.0030711016;
+      //const float a2 =  3.3309495161;
+      const float v = k3*tanf((float)i/k2 + k1);
+      //const float v = 1.0/((float)i*a1 + a2);
       m_gamma[i] = v;
    }
 
@@ -57,11 +60,12 @@ bool MyFreenectDevice::getVideo(Mat& output) {
    }
 }
 
-void MyFreenectDevice::setOwnMat( void ) {
-   m_rgb_mutex.lock();
-   cvtColor(rgbMat, ownMat, CV_RGB2BGR);
-   flip(ownMat,ownMat,0);
-   m_rgb_mutex.unlock();
+void MyFreenectDevice::setOwnMat( Mat& inMat ) {
+   //m_rgb_mutex.lock();
+   //cvtColor(rgbMat, ownMat, CV_RGB2BGR);
+   //flip(ownMat,ownMat,0);
+   //m_rgb_mutex.unlock();
+   ownMat = inMat.clone();
 }
 
 bool MyFreenectDevice::getDepth(Mat& output) {

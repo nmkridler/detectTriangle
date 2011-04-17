@@ -49,7 +49,7 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
       bool getDepth(Mat& output);
 
       // Set ownMat  
-      void setOwnMat( void );
+      void setOwnMat( Mat &inMat );
       
       //###############################################################
       // depthViewColor

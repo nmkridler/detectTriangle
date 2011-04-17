@@ -1,5 +1,6 @@
 #include "driver.h"
 
+
 // This shader performs a 9-tap Laplacian edge detection filter.
 // (converted from the separate "edges.cg" file to embedded GLSL string)
 static const char *edgeFragSource = {
@@ -25,64 +26,58 @@ static const char *edgeFragSource = {
 };
 //"   gl_FragColor = 8.0 * (c + -0.125 * (bl + l + tl + t + ur + r + br + b));"
 
-// This shader performs RGB normalization.
-static const char *normFragSource = {
-"uniform sampler2D texUnit;"
-"void main(void)"
-"{"
-"   const float offset = 1.0 / 512.0;"
-"   vec2 texCoord = gl_TexCoord[0].xy;"
-"   vec4 c  = texture2D(texUnit, texCoord);"
-"   float cRed = (float)c.r; "
-"   float cGrn = (float)c.g; "
-"   float cBlu = (float)c.b; "
-"   float norm = sqrt(cRed*cRed + cGrn*cGrn + cBlu*cBlu);"
-"   gl_FragColor.a = 1.0;"
-"   gl_FragColor.r = c.r/norm; "
-"   gl_FragColor.g = c.g/norm; "
-"   gl_FragColor.b = c.b/norm; "
-"}"
-};
-
-
 driver::driver(int w, int h)
     : _iWidth(w),
-      _iHeight(h)
+      _iHeight(h),
+      m_filterOrange(false)
 {
-    device = &freenect.createDevice<Triangles>(0);
+    
     // Start the freenect device
+    device = &freenect.createDevice<Triangles>(0);
     device->startVideo();
     device->startDepth();
-     
-    // Create a simple 2D texture.  This example does not use
-    // render to texture -- it just copies from the framebuffer to the
-    // texture.
-    glGenTextures(1, &_iTexture);
-    glBindTexture(GL_TEXTURE_2D, _iTexture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    bigFrame = Mat::zeros(Size(1280,480),CV_8UC3);
+    if(!device->getVideo(rgbFrame))
+       rgbFrame = Mat::zeros(Size(_iWidth,_iHeight),CV_8UC3);
+    rgbFrame.copyTo(frame);
 
-    // Get webcam feed
-    device->getVideo(frame);
-   
-    glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, _iWidth, _iHeight, 
-    //             0, GL_RGB, GL_FLOAT, 0);
-       
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _iWidth, _iHeight, 
-                 0, GL_BGR, GL_UNSIGNED_BYTE, frame.data);
+    // Create a 2d texture for the input
+    createImgTexture();
+        
+    // Create a 2d texture for the output
+    createOutTexture();
+
+    // Initialize the shader
+    initShader();    
+}
+
+// Update
+void driver::update()
+{   
+    // Get the RGB frame and copy to frame for processing
+    device->getVideo(rgbFrame);
+    rgbFrame.copyTo(frame); 
+    device->filterOrange(frame);   // Get only the orange in HSV
+
+    // Run the rgb normalization
+    rgbNorm();
+
+    // Get the opencv frame
+    runDetect();
+    transferToTexture(bigFrame,_outputTex);
+
+}
+
+// Initialize the shader program
+void driver::initShader()
+{
+
     // GPGPU CONCEPT 2: Fragment Program = Computational Kernel.
-    // A fragment program can be thought of as a small computational 
-    // kernel that is applied in parallel to many fragments 
-    // simultaneously.  Here we load a kernel that performs an edge 
-    // detection filter on an image.
     _programObject = glCreateProgramObjectARB();
 
     // Create the edge detection fragment program
     _fragmentShader = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
-    glShaderSourceARB(_fragmentShader, 1, &normFragSource, NULL);
+    glShaderSourceARB(_fragmentShader, 1, &edgeFragSource, NULL);
     glCompileShaderARB(_fragmentShader);
     glAttachObjectARB(_programObject, _fragmentShader);
 
@@ -98,51 +93,48 @@ driver::driver(int w, int h)
     }
     // Get location of the sampler uniform
     _texUnit = glGetUniformLocationARB(_programObject, "texUnit");
+
 }
 
 
-// This method updates the texture by rendering the geometry (a teapot 
-// and 3 rotating tori) and copying the image to a texture.  
-// It then renders a second pass using the texture as input to an edge 
-// detection filter.  It copies the results of the filter to the texture.
-// The texture is used in HelloGPGPU::display() for displaying the 
-// results.
-void driver::update()
-{   
-    // Get the opencv frame
-    device->getVideo(frame);
-#if 0
-    device->setOwnMat();
-    Mat orangeFrame;
-    frame.copyTo(orangeFrame);
-    device->filterOrange(orangeFrame);
-    device->contourImg();
-    vector<Point> cMass;
-    device->getDetectCM(cMass);
-    //frame.copyTo(orangeFrame);
-    if( device->foundTarget() )
-    {
-       for(unsigned int dIdx = 0; dIdx < cMass.size(); dIdx++)
-       {  
-          circle(orangeFrame, cMass[dIdx], 60, Scalar(0,0,255),5);
-       }
-    }
-#endif
+void driver::initFBO()
+{
+    // Now create a frame buffer object
+    glGenFramebuffersEXT(1,&_fbo);
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT,_fbo);
+    glMatrixMode(GL_PROJECTION);    
+    glLoadIdentity();               
+    gluOrtho2D(-1, 1, -1, 1);       
+    glMatrixMode(GL_MODELVIEW);     
+    glLoadIdentity();    
+}
 
-    // store the window viewport dimensions so we can reset them,
-    // and set the viewport to the dimensions of our texture
+// Run the RGB filter
+void driver::rgbNorm()
+{   
+
+    // Initialize the frame buffer object
+    initFBO();
+
+    // Attach a READ texture
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
+                              GL_COLOR_ATTACHMENT0_EXT,
+                              GL_TEXTURE_2D,_iTexture[0],0);
+    // Attach a WRITE texture
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
+                              GL_COLOR_ATTACHMENT1_EXT,
+                              GL_TEXTURE_2D,_iTexture[1],0);
+    glDrawBuffer(GL_COLOR_ATTACHMENT1_EXT);
+
+    // Set up the window and bind the image to the texture
     int vp[4];
     glGetIntegerv(GL_VIEWPORT, vp);
-
-    // GPGPU CONCEPT 3a: One-to-one Pixel to Texel Mapping: A Data-
-    //                   Dimensioned Viewport.
     glViewport(0, 0, _iWidth, _iHeight);
-    glClear(GL_COLOR_BUFFER_BIT); 
-    glBindTexture(GL_TEXTURE_2D, _iTexture);
-    glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _iWidth, _iHeight, 
-                 0, GL_BGR, GL_UNSIGNED_BYTE, frame.data);
-#if 1
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Transfer the frame to the read texture 
+    transferToTexture(frame,_iTexture[0]);
+        
     // run the edge detection filter over the geometry texture
     // Activate the edge detection filter program
     glUseProgramObjectARB(_programObject);
@@ -151,14 +143,6 @@ void driver::update()
     glUniform1iARB(_texUnit, 0);
          
     // GPGPU CONCEPT 4: Viewport-Sized Quad = Data Stream Generator.
-    // In order to execute fragment programs, we need to generate pixels.
-    // Drawing a quad the size of our viewport (see above) generates a 
-    // fragment for every pixel of our destination texture. Each fragment
-    // is processed identically by the fragment program. Notice that in 
-    // the reshape() function, below, we have set the frustum to 
-    // orthographic, and the frustum dimensions to [-1,1].  Thus, our 
-    // viewport-sized quad vertices are at [-1,-1], [1,-1], [1,1], and 
-    // [-1,1]: the corners of the viewport.
     glBegin(GL_QUADS);
     {            
         glTexCoord2f(0, 0); glVertex3f(-1, -1, -0.5f);
@@ -171,26 +155,19 @@ void driver::update()
     // disable the filter
     glUseProgramObjectARB(0);
 
-    // GPGPU CONCEPT 5: Copy To Texture (CTT) = Feedback.
-    // We have just invoked our computation (edge detection) by applying 
-    // a fragment program to a viewport-sized quad. The results are now 
-    // in the frame buffer. To store them, we copy the data from the 
-    // frame buffer to a texture.  This can then be fed back as input
-    // for display (in this case) or more computation (see 
-    // more advanced samples.)
-    // update the texture again, this time with the filtered scene
-    glBindTexture(GL_TEXTURE_2D, _iTexture);
-    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, _iWidth, _iHeight);
-#endif
-        
+    // Get the results
+    transferFromTexture(frame);
+    glDeleteFramebuffersEXT(1,&_fbo); 
+
     // restore the stored viewport dimensions
     glViewport(vp[0], vp[1], vp[2], vp[3]);
 }
 
+// Display the output texture
 void driver::display()
 {
     // Bind the filtered texture
-    glBindTexture(GL_TEXTURE_2D, _iTexture);
+    glBindTexture(GL_TEXTURE_2D, _outputTex);
     glEnable(GL_TEXTURE_2D);
 
     // render a full-screen quad textured with the results of our 
@@ -207,13 +184,103 @@ void driver::display()
     glDisable(GL_TEXTURE_2D);
 }
 
+void driver::runDetect()
+{
+
+    // Set the frame we will be doing computations on
+    device->setOwnMat(frame);  // This should be the sobel output
+
+    // Create an orange frame
+    Mat orangeFrame;
+    rgbFrame.copyTo(orangeFrame);
+    device->filterOrange(orangeFrame);
+    if( m_filterOrange ) device->depthViewColor(orangeFrame);
+     
+    // Run the detection process
+    device->contourImg();
+    vector<Point> cMass;
+    device->getDetectCM(cMass);
+  
+    // Output the detections
+    if( device->foundTarget() )
+    {
+       for(unsigned int dIdx = 0; dIdx < cMass.size(); dIdx++)
+       {  
+          circle(orangeFrame, cMass[dIdx], 60, Scalar(0,0,255),5);
+       }
+    }
+   
+    // copy into the output
+    Rect leftROI(    Point(0,0),frame.size());
+    Rect rightROI( Point(640,0),frame.size());
+    Mat  leftSide  = bigFrame(leftROI);
+    Mat  rightSide = bigFrame(rightROI);
+    rgbFrame.copyTo(leftSide);
+    orangeFrame.copyTo(rightSide);
+
+}
+// Transfer data to the texture
+void driver::transferToTexture(Mat &input, GLuint texID)
+{
+    glBindTexture(GL_TEXTURE_2D, texID);
+    glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, input.cols, input.rows, 
+                  0, GL_BGR, GL_UNSIGNED_BYTE, input.data);
+   
+}
+// Transfer texture to the Mat
+void driver::transferFromTexture( Mat &output)
+{
+    glReadBuffer(GL_COLOR_ATTACHMENT1_EXT); 
+    glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+    glReadPixels(0,0,_iWidth,_iHeight,GL_BGR,GL_UNSIGNED_BYTE,output.data);
+}
+
+// Set up the texture
+void driver::setupTexture( const GLuint texID, int width, int height)
+{
+    glBindTexture(GL_TEXTURE_2D, texID);
+
+     // set basic parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+    // Set up BGR texture
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 
+                  0, GL_BGR, GL_UNSIGNED_BYTE, 0);
+  
+}
+// Create the input texture
+void driver::createImgTexture()
+{
+    // create a texture
+    glGenTextures(2,_iTexture);
+    setupTexture(_iTexture[0], _iWidth, _iHeight); // Read texture
+    transferToTexture(frame,_iTexture[0]);
+    setupTexture(_iTexture[1], _iWidth, _iHeight); // Read texture
+    transferToTexture(frame,_iTexture[1]);
+
+}
+// Create the output texture
+void driver::createOutTexture()
+{
+    // create a texture
+    glGenTextures(1, &_outputTex);
+    setupTexture(_outputTex, 2*_iWidth, _iHeight); // Read texture
+    transferToTexture(bigFrame, _outputTex);
+}
+
+// Set the kinect angle
 void driver::setTilt(double &tiltAngle)
 {
    device->setTiltDegrees(tiltAngle);
 }
 
-void driver::cleanUp()
+// Set the depth flag
+void driver::setDepthFlag()
 {
-   device->stopVideo();
-   device->stopDepth();
+   m_filterOrange = !m_filterOrange;
 }
+
