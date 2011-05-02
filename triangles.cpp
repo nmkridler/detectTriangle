@@ -42,17 +42,21 @@ void Triangles::getContour(){
    // If contours exist, find the triangles
    if( contours.size() > 0 ){
       // Initialize area and indices
-      unsigned int idx = 0;
-      while( idx < contours.size() ){
+      for( unsigned int idx = 0; idx < contours.size(); ++idx )
+      {
          vector<Point> approx;
+         vector<Point> approxTriangle;
          approxPolyDP(Mat(contours[idx]), approx, 5, true);
          double areaIdx = contourArea(approx);
+         if( approx.size() > 2 && areaIdx > 0)
+         {
+            reduceContour( approx, approxTriangle);
          
-         // Create a mask
-         if( areaIdx > TARGET_PIXEL_THRESH ){
-            processContour(approx);
+            // Create a mask
+            if( Stats::validTriangle(approx,approxTriangle)){
+               processContour(approxTriangle);
+            }
          }
-         idx++;
       }
    } 
 }
@@ -64,58 +68,53 @@ void Triangles::getContour(){
 //   add to detection list
 //
 //###############################################################
-void Triangles::processContour( const vector<Point> &contour )
+void Triangles::processContour( vector<Point> &approxTriangle )
 {
-   // Approximate the object with a triangle
-   vector<Point> approxTriangle;
-   //reduceContour( contour, approxTriangle );
-   approxTriangle = contour;
-   Point contourCenter(0,0);
+   // Triangle center of mass
    Point triangleCenter(0,0);
-   centerOfMass(contour,contourCenter);
-   centerOfMass(approxTriangle,triangleCenter);
-   if( validTriangle(contour,approxTriangle) )
-   {
-      Detection newDetection(approxTriangle);
-      if (m_triangle.size() == 0){
+   Stats::centerOfMass(approxTriangle,triangleCenter);
+
+   // Make a new detection object
+   Detection newDetection(approxTriangle);
+   if (m_triangle.size() == 0){
+      initializeDetection(newDetection);
+      m_triangle.push_back(newDetection);
+      uint64_t lastIdx = m_triangle.size();
+      m_triangle[lastIdx-1].addHit(); 
+   }  // If we haven't seen it before at it to the list
+   else{
+      // Loop through the detections
+      // determine the distance to the center of mass
+      unsigned int dIdx = 0;
+      bool foundMatch = false;
+      while( dIdx < m_triangle.size() && !foundMatch)
+      {
+         // get the center of mass
+         Point detectMass(0,0);
+         m_triangle[dIdx].getCentMass(detectMass);
+         // Calculate the distance
+         int dist = sqrt( pow(detectMass.x - triangleCenter.x,2) +
+                          pow(detectMass.y - triangleCenter.y,2));
+          
+         // Take everything within 10 pixels to be the same
+         if( dist < TARGET_RELATED_DIST )
+         {
+            foundMatch = true;
+            initializeDetection(m_triangle[dIdx]);
+            m_triangle[dIdx].addHit();
+                
+         }
+         ++dIdx;
+      } // end loop over detections
+      if(  !foundMatch ){
          initializeDetection(newDetection);
+         newDetection.addHit();
          m_triangle.push_back(newDetection);
          uint64_t lastIdx = m_triangle.size();
-         m_triangle[lastIdx].addHit(); 
+         m_triangle[lastIdx-1].addHit(); 
+          
       }
-      else{
-         // Loop through the detections
-         // determine the distance to the center of mass
-         unsigned int dIdx = 0;
-         bool foundMatch = false;
-         while( dIdx < m_triangle.size() && !foundMatch)
-         {
-            // get the center of mass
-            Point detectMass(0,0);
-            m_triangle[dIdx].getCentMass(detectMass);
-            // Calculate the distance
-            int dist = sqrt( pow(detectMass.x - triangleCenter.x,2) +
-                             pow(detectMass.y - triangleCenter.y,2));
-             
-            // Take everything within 10 pixels to be the same
-            if( dist < TARGET_RELATED_DIST ){
-               foundMatch = true;
-               m_triangle[dIdx].addHit();
-               initializeDetection(m_triangle[dIdx]);
-                
-            }
-            ++dIdx;
-         } // end loop over detections
-         if(  !foundMatch ){
-            newDetection.addHit();
-            initializeDetection(newDetection);
-            m_triangle.push_back(newDetection);
-            uint64_t lastIdx = m_triangle.size();
-            m_triangle[lastIdx].addHit(); 
-            
-         }
-      } // End check for existing
-   } // End check for valid
+   } // End check for existing
    // Make sure we don't have too many detections
    while( m_triangle.size() > MAX_DETECTIONS )
    {
@@ -135,8 +134,6 @@ void Triangles::initializeDetection( Detection& newDetection)
    Point triangleCenter(0,0);
    vector<Point> triangle;
    newDetection.getVertices(triangle);
-   centerOfMass(triangle,triangleCenter);
-   newDetection.setCentMass(triangleCenter);
 
    // Initialize with valid and zero misses
    newDetection.setValid(true);
@@ -196,78 +193,24 @@ void Triangles::reduceDetections()
 //###############################################################
 // outputDetections
 //
-//   create a mask with all of the detections
+//   create a list of the centers
 // 
 //###############################################################
 void Triangles::outputDetections()
 {
-   Scalar color(255);
 
-   //float minScore = 0;
-   //unsigned int minIdx = 0;
    // Loop over the detections
    m_cMass.clear();
    for( unsigned int dIdx = 0; dIdx < m_triangle.size(); ++dIdx)
    {
-       //if( dIdx == 0 ){
-       //   m_triangle[dIdx].getCentMass(m_cMass);
-       //   cout << "Area: " << m_triangle[dIdx].getArea() << endl;
-       //}
-       //vector<Point> newObject;
-       //m_triangle[dIdx].getVertices(newObject);
-       //fillConvexPoly(dst, newObject.data(), 
-       //               newObject.size(), color);
-       Point cMass;
-       m_triangle[dIdx].getCentMass(cMass);
-       m_cMass.push_back(cMass);
-       //float score = m_triangle[dIdx].getScore();
-       //if( dIdx == 0 ) minScore = score;
-      
-       //if( score < minScore ){
-       //   minScore = score;
-       //   minIdx   = dIdx;
-      // }
-            
+      Point cMass;
+      m_triangle[dIdx].getCentMass(cMass);
+      m_cMass.push_back(cMass);
+
    }
-   //m_triangle[minIdx].getCentMass(m_cMass);
      
 }
       
-//###############################################################
-// validTriangle
-//
-//   check all the vertices to see if they are within the triangle
-// 
-//###############################################################
-bool Triangles::validTriangle( const vector<Point> &contour, 
-                    const vector<Point> &triangle)
-{
-   bool foundStray = false;
-   for( unsigned int idx = 0; idx < contour.size(); ++idx)
-   {
-      if( pointPolygonTest(Mat(triangle),contour[idx],false) < 0.0)
-         foundStray = true;
-
-      
-   }
-
-
-   return !foundStray;
-}
-
-//###############################################################
-// centerOfMass
-//
-//   determine the object's center of mass
-// 
-//###############################################################
-void Triangles::centerOfMass( const vector<Point> &contour, Point &cMass)
-{
-   // Calculate the moments       
-   Moments cMoments = moments(Mat(contour));
-   cMass.x = (int)(cMoments.m10/cMoments.m00);
-   cMass.y = (int)(cMoments.m01/cMoments.m00);
-}
 
 //###############################################################
 // pixelDepth
@@ -293,12 +236,12 @@ void Triangles::reduceContour( const vector<Point> &contour, vector<Point> &newT
 {
    // Calculate the moments
    Point centMass(0,0);      
-   centerOfMass( contour, centMass );
+   Stats::centerOfMass( contour, centMass );
 
    // Get the 3 vertices furthest from the center
    vector<int> cDist;
-   vector<unsigned int>:: iterator jIdx;
-   vector<unsigned int>:: iterator kIdx;
+   vector<unsigned int>::iterator jIdx;
+   vector<unsigned int>::iterator kIdx;
    vector<unsigned int> distIdx;
    // Compute distance to the center
    for( unsigned int idx = 0; idx < contour.size(); ++idx)
@@ -353,63 +296,11 @@ void Triangles::contourColor( Detection &newDetection)
    //cout << contourStd[0] << " " << contourStd[1] << " " << contourStd[2];
    //cout << endl;
    // Set the standard deviation and the mean
-   newDetection.setMean( contourMean );
-   newDetection.setStdDev( contourStd );
+   float cScore = Stats::colorScore( contourMean, contourStd);
+   newDetection.setColorScore( cScore );
 
 }
 
-// Filter the feed to get orange only 
-void Triangles::filterOrange( Mat& output)
-{
-    
-   // convert RGB to HSV
-   Mat tmpHSV, tmpRGB;
-   //equalizeHist(output,tmpRGB);
-   cvtColor(output, tmpHSV, CV_BGR2HSV);
-
-   // Create a mask for the orange color
-   Mat orangeImg = Mat::zeros(tmpHSV.size(), CV_8UC1);
-   Mat orangeMsk(tmpHSV.size(), CV_8UC1);
-   inRange(tmpHSV, HSV_LOWER, HSV_UPPER, orangeMsk);
-
-   // Dilate the mask and set to 255
-   dilate(orangeMsk,orangeMsk,Mat());
-   orangeImg.setTo(Scalar(255),orangeMsk);
-
-   // Find the non orange pixels and set to 0
-   inRange(orangeImg,Scalar(0),Scalar(254),orangeMsk);
-   erode(orangeMsk,orangeMsk,Mat());
-   dilate(orangeMsk,orangeMsk,Mat());
-
-   output.setTo(Scalar(0,0,0),orangeMsk);
-
-    
-}
-
-void Triangles::equalizeRGB(Mat &output)
-{
-   // Initialize the channels
-   Mat rMat(output.size(),CV_8UC1);
-   Mat gMat(output.size(),CV_8UC1);
-   Mat bMat(output.size(),CV_8UC1);
-   Mat rOut(output.size(),CV_8UC1);
-   Mat gOut(output.size(),CV_8UC1);
-   Mat bOut(output.size(),CV_8UC1);
-
-   // Make a vector and split
-   vector<Mat> outMat;
-   outMat.push_back(bMat); 
-   outMat.push_back(gMat); 
-   outMat.push_back(rMat); 
-   split(output, outMat );
-
-   // Equalize and copy to output
-   equalizeHist(rMat,rOut);
-   equalizeHist(gMat,gOut);
-   equalizeHist(bMat,bOut);
-   merge(outMat,output);
-
-}
 
 void Triangles::contourImg()
 {

@@ -1,10 +1,16 @@
 
 #include "detection.h"
 Detection::Detection( vector<Point> &contact): m_contact(contact),
+                                               m_area(0),
                                                m_valid(false),
                                                m_rightAngle(false),
-                                               m_areaSum(0),
-                                               m_hitCount(0){}
+                                               m_colorScore(0),
+                                               m_perimeter(0),
+                                               m_hitCount(0)
+{
+   // Set the center of mass
+   Stats::centerOfMass(m_contact,m_centMass);
+}
 
 // Get distance to vertices
 void Detection::getDistance( vector<float> &distance ) const
@@ -17,42 +23,11 @@ void Detection::getLengths( vector<float> &length ) const
 { 
    length = m_sideLength;
 }
-// Mean
-void Detection::getMean( Scalar &meanVal ) const
-{
-   meanVal = m_mean;
-}
-
-// Standard deviation
-void Detection::getStdDev( Scalar &stdVal ) const
-{
-   stdVal = m_stddev;
-}
 
 // Center of mass
 void Detection::getCentMass( Point &centMass ) const
 {
    centMass = m_centMass; 
-}
-
-// Get Color
-void Detection::getColor( Scalar &color ) const 
-{ 
-   color = m_color; 
-}
-      
-// Get Area
-float Detection::getArea() 
-{
-   float area = 0.0;
-   area = m_areaSum;
-   if( m_hitCount > 0){
-      area /= ((float)m_hitCount);
-   }
-   
-   setArea(area);
-   return area;
-   
 }
 
 // Get Vertices
@@ -61,7 +36,6 @@ void Detection::getVertices( vector<Point> &contact ) const
    contact = m_contact; 
 }
 
-// Get Valid
 bool Detection::validDetection() const 
 {
    return m_valid;
@@ -80,7 +54,15 @@ unsigned int Detection::getHitCount() const
 // Increment hit count
 void Detection::addMiss(){ m_missCount++;}
 
-void Detection::addHit(){ m_hitCount++;}
+void Detection::addHit()
+{
+   // Everytime we get a hit, redo the area
+   m_hitCount++;
+   pixelToMetric();
+   setSideLength();
+   setRightAngle();
+   
+}
 
 // Setters
 void Detection::setDistance( vector<float> &distance )
@@ -88,15 +70,6 @@ void Detection::setDistance( vector<float> &distance )
    m_distance = distance;
    pixelToMetric();
 }
-
-// Set Color
-void Detection::setColor( Scalar &color ){m_color = color;}
-
-// Set Area
-void Detection::setArea( float &area ){ m_area = area; }
-
-// Set center of mass
-void Detection::setCentMass( Point &centMass ){ m_centMass = centMass;}
 
 // Set valid
 void Detection::setValid( bool valid ){ m_valid = valid; }
@@ -170,43 +143,44 @@ void Detection::setSideLength()
    m_sideLength.push_back(sqrt(v.dot(v)));
    m_sideLength.push_back(sqrt(w.dot(w)));
 
+   // Reset the perimeter
+   float localPerimeter = 0.0;
+   for( unsigned int idx = 0; idx < m_sideLength.size(); ++idx)
+      localPerimeter += m_sideLength[idx];
+   m_perimeter = localPerimeter;
+
    // Lengths
-   //cout << "Lengths: ";
-   //cout << sqrt(u.dot(u)) << " ";
-   //cout << sqrt(v.dot(v)) << " ";
-   //cout << sqrt(w.dot(w)) << endl;
-   
+#if 0
+   cout << "Lengths: ";
+   cout << sqrt(u.dot(u)) << " ";
+   cout << sqrt(v.dot(v)) << " ";
+   cout << sqrt(w.dot(w)) << endl;
+#endif
+
    // We only need two sides to determine the area
    float theta = acos(u.dot(v));
-   m_areaSum += m_sideLength[0]*m_sideLength[1]*abs(sin(theta));
+   m_area = m_sideLength[0]*m_sideLength[1]*abs(sin(theta));
+   float score = getScore();
+//   cout << m_area << "," << m_perimeter << "," << score << endl;
 }
 
-// Set the mean
-void Detection::setMean( Scalar &meanVal )
+// Set the color score
+void Detection::setColorScore( float &colorScore )
 {
-   m_mean = meanVal;
-}
-
-// Set the standard deviation
-void Detection::setStdDev( Scalar &stdVal )
-{
-   m_stddev = stdVal;
+   m_colorScore = colorScore;
 }
 
 float Detection::getScore()
 {
-   float colorScore = 0;
-   colorScore += abs((float)(m_mean[0] - TARGET_COLOR[0]))*
-                     (float)m_stddev[0];
-   colorScore += abs((float)(m_mean[1] - TARGET_COLOR[1]))*
-                     (float)m_stddev[1];
-   colorScore += abs((float)(m_mean[2] - TARGET_COLOR[2]))*
-                     (float)m_stddev[2];
 
-   m_area = getArea();
    float areaScore = abs(m_area - TARGET_AREA_METERS)/TARGET_AREA_METERS;
-   //cout << "Score: " << areaScore << endl;
-   return areaScore*colorScore;
+   float permScore = abs(m_perimeter - TARGET_PERIM)/TARGET_PERIM;
+//   if( areaScore < 1.0 && permScore < 1.0)
+//   {
+//      m_valid = true;
+//   }
+//   else m_valid = false;
+   return areaScore+permScore;
    
 }
 

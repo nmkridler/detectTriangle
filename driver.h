@@ -6,6 +6,7 @@
 #include "libfreenect.h"
 #include "kinectdevice.h"
 #include "triangles.h"
+#include "filters.h"
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -31,9 +32,12 @@ public: // methods
     // Pulls a frame and runs it through GLUT
     void update();
 
+    // Accumulate frames
+    void accumulate();
+
     // Eventually this will do histogram equalization
     // At the moment it does a sobel filter 
-    void rgbNorm();
+    void shader();
 
     // Display the results
     void display();
@@ -41,6 +45,9 @@ public: // methods
     // Run the triangle detection portion of the code
     void runDetect();
 
+    // Current status
+    void showStatus();
+  
     // Set the kinect tilt angle
     void setTilt(double &tiltAngle);
 
@@ -96,10 +103,15 @@ protected: // data
     Mat                frame;             // The filtered frame
     Mat                bigFrame;          // The output image 
                                           // (left rgb, right out)
+    Mat                orangeFrame;       // The filtered orange RGB frame
     Mat                rgbFrame;          // The RGB frame
+    Mat                sumFrame;          // The Accumulated frame
+    unsigned int       m_frameCount;      // Frame count
     bool               m_filterOrange;    // Show orange filter?
     bool               m_showDepth;       // Show depth?
-                                      
+    bool               m_findTriangles;   // Find triangles?
+private:
+    static unsigned int const  FRAMES_PER_STACK = 10;                                      
 };
 #endif
 

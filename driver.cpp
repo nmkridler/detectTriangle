@@ -29,8 +29,10 @@ static const char *edgeFragSource = {
 driver::driver(int w, int h)
     : _iWidth(w),
       _iHeight(h),
+      m_frameCount(0),
       m_filterOrange(false),
-      m_showDepth(false)
+      m_showDepth(false),
+      m_findTriangles(false)
 {
     
     // Start the freenect device
@@ -38,9 +40,13 @@ driver::driver(int w, int h)
     device->startVideo();
     device->startDepth();
     bigFrame = Mat::zeros(Size(1280,480),CV_8UC3);
+    sumFrame = Mat::zeros(Size(_iWidth,_iHeight),CV_32FC3);
     if(!device->getVideo(rgbFrame))
+    {
        rgbFrame = Mat::zeros(Size(_iWidth,_iHeight),CV_8UC3);
+    }
     rgbFrame.copyTo(frame);
+    rgbFrame.copyTo(orangeFrame);
 
     // Create a 2d texture for the input
     createImgTexture();
@@ -55,21 +61,46 @@ driver::driver(int w, int h)
 // Update
 void driver::update()
 {   
-    // Get the RGB frame and copy to frame for processing
-    device->getVideo(rgbFrame);
-    rgbFrame.copyTo(frame); 
-    device->equalizeRGB(frame);
-    device->filterOrange(frame);   // Get only the orange in HSV
+   // Get the RGB frame and copy to frame for processing
+   if( m_findTriangles )
+   { 
+      // Scale the accumulated data
+      double alpha = 1.0/static_cast<double>(FRAMES_PER_STACK);
+      sumFrame.convertTo(frame,CV_8UC3,alpha);
+  
+      // Reset everything
+      m_frameCount = 0;
+      m_findTriangles = false;
+      Mat zeroFrame = Mat::zeros(Size(_iWidth,_iHeight),CV_32FC3);
+      zeroFrame.copyTo(sumFrame);
 
-    // Run the rgb normalization
-    rgbNorm();
+      // Equalize the image and filter for orange 
+      Filters::equalizeRGB(frame);
+      Filters::filterOrange(frame);   // Get only the orange in HSV
 
-    // Get the opencv frame
-    runDetect();
-    transferToTexture(bigFrame,_outputTex);
+      // Run the edge detection
+      shader();
 
+      // Get the opencv frame
+      runDetect();
+   }
+   showStatus();
+   transferToTexture(bigFrame,_outputTex);
+   
 }
 
+void driver::accumulate()
+{
+   if( device->getVideo(rgbFrame) )
+   {
+      m_frameCount++;
+      Mat floatFrame = Mat::zeros(Size(_iWidth,_iHeight),CV_32FC3);
+      rgbFrame.convertTo(floatFrame,CV_32FC3);
+      cv::accumulate(floatFrame,sumFrame);
+   }
+   if( m_frameCount == FRAMES_PER_STACK ) m_findTriangles = true;
+   update();
+}
 // Initialize the shader program
 void driver::initShader()
 {
@@ -112,7 +143,7 @@ void driver::initFBO()
 }
 
 // Run the RGB filter
-void driver::rgbNorm()
+void driver::shader()
 {   
 
     // Initialize the frame buffer object
@@ -186,20 +217,30 @@ void driver::display()
     glDisable(GL_TEXTURE_2D);
 }
 
+void driver::showStatus()
+{
+    // copy into the output
+    Rect leftROI(    Point(0,0),frame.size());
+    Rect rightROI( Point(640,0),frame.size());
+    Mat  leftSide  = bigFrame(leftROI);
+    Mat  rightSide = bigFrame(rightROI);
+    rgbFrame.copyTo(leftSide);
+    orangeFrame.copyTo(rightSide);
+
+}
+
 void driver::runDetect()
 {
-
     // Set the frame we will be doing computations on
     device->setOwnMat(frame);  // This should be the sobel output
 
-    // Create an orange frame
-    Mat orangeFrame;
     rgbFrame.copyTo(orangeFrame);
 
     // Equalize the image and 
-    device->equalizeRGB(orangeFrame);
-    if( m_showDepth ) device->depthViewColor(orangeFrame);
-    if( m_filterOrange ) device->filterOrange(orangeFrame);
+    Filters::equalizeRGB(orangeFrame);
+    //if( m_showDepth ) device->depthViewColor(orangeFrame);
+    if( m_showDepth ) frame.copyTo(orangeFrame);
+    if( m_filterOrange ) Filters::filterOrange(orangeFrame);
 
     // Run the detection process
     device->contourImg();
@@ -214,16 +255,10 @@ void driver::runDetect()
           circle(orangeFrame, cMass[dIdx], 60, Scalar(0,0,255),5);
        }
     }
-   
-    // copy into the output
-    Rect leftROI(    Point(0,0),frame.size());
-    Rect rightROI( Point(640,0),frame.size());
-    Mat  leftSide  = bigFrame(leftROI);
-    Mat  rightSide = bigFrame(rightROI);
-    rgbFrame.copyTo(leftSide);
-    orangeFrame.copyTo(rightSide);
 
 }
+
+
 // Transfer data to the texture
 void driver::transferToTexture(Mat &input, GLuint texID)
 {
@@ -301,3 +336,5 @@ void driver::resetFlags()
    m_filterOrange = false;
    m_showDepth    = false;
 }
+
+

@@ -10,6 +10,7 @@
 #include <cxcore.h>
 #include <highgui.h>
 #include "detection.h"
+#include "stats.h"
 
 using namespace cv;
 using namespace std;
@@ -44,7 +45,7 @@ class Triangles : public MyFreenectDevice
       //   add to detection list
       //
       //###############################################################
-      void processContour( const vector<Point> &contour );
+      void processContour( vector<Point> &approxTriangle );
  
       //###############################################################
       // initializeDetection
@@ -78,23 +79,6 @@ class Triangles : public MyFreenectDevice
       //###############################################################
       void outputDetections();
      
-      //###############################################################
-      // validTriangle
-      //
-      //   check all the vertices to see if they are within the triangle
-      // 
-      //###############################################################
-      bool validTriangle( const vector<Point> &contour, 
-                          const vector<Point> &triangle);
-       
-      //###############################################################
-      // centerOfMass
-      //
-      //   determine the object's center of mass
-      // 
-      //###############################################################
-      void centerOfMass( const vector<Point> &contour, Point &cMass);
-  
       // Center of mass getter
       void getDetectCM( vector<Point> &cMass ) const;
  
@@ -115,9 +99,6 @@ class Triangles : public MyFreenectDevice
       //###############################################################
       void reduceContour( const vector<Point> &contour, vector<Point> &newTri);
 
-       // Filter the feed to get orange only 
-      void filterOrange( Mat& output);
-    
       // Set the color mean and standard deviation of the object
       void contourColor( Detection &newDetection);
  
@@ -125,7 +106,6 @@ class Triangles : public MyFreenectDevice
     
       bool foundTarget(); 
      
-      void equalizeRGB(Mat& output); 
    private:
       vector<Detection>  m_triangle;
       vector<Point>      m_cMass;

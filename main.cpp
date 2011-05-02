@@ -26,7 +26,7 @@ double freenect_angle=0;
 // GLUT display function
 void display()
 {
-    g_Driver->update();  // update the scene and run the edge detect filter
+    g_Driver->accumulate();  // update the scene and run the edge detect filter
     g_Driver->display(); // display the results
     glutSwapBuffers();
  

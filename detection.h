@@ -8,6 +8,7 @@
 #include <cxcore.h>
 #include <highgui.h>
 #include "constants.h"
+#include "stats.h"
 
 using namespace cv;
 using namespace std;
@@ -28,13 +29,6 @@ class Detection
       // Center of mass
       void getCentMass( Point &centMass ) const;
 
-      // Get Color
-      void getColor( Scalar &color ) const;
-      
-      // Get Area
-      float getArea(); 
-      float getAreaSum() const;
-
       // Get Vertices
       void getVertices( vector<Point> &contact ) const;
 
@@ -46,13 +40,9 @@ class Detection
 
       // Get hit count
       unsigned int getMissCount() const;
+
       unsigned int getHitCount() const;
 
-      // Get mean
-      void getMean( Scalar &meanVal) const;
-
-      // Get mean
-      void getStdDev( Scalar &stdVal) const;
 
       // Increment hit count
       void addMiss();
@@ -60,12 +50,6 @@ class Detection
       // Setters
       void setDistance( vector<float> &distance );
     
-      // Set Color
-      void setColor( Scalar &color );
-
-      // Set Area
-      void setArea( float &area );
-
       // Set center of mass
       void setCentMass( Point &centMass );
 
@@ -84,11 +68,8 @@ class Detection
       // Set side lengths
       void setSideLength();
      
-      // Set mean
-      void setMean( Scalar &meanVal );
-
-      // Set StdDev
-      void setStdDev( Scalar &stdVal );
+      // Set color score
+      void setColorScore( float &colorScore );
 
       // Get right angle flag
       bool isRightTriangle(){ return m_rightAngle; }
@@ -101,16 +82,13 @@ class Detection
       vector<Point3f> m_xyz;
       vector<float>   m_distance;        // Distance to each vertex in meters
       vector<float>   m_sideLength;      // Length of each side
-      Scalar          m_color;           // Color of the object
-      Point3f         m_normalVector;    // Normal to the object
       Point           m_centMass;        // Center of mass 
       float           m_area;            // Area of the object
       bool            m_valid;           // valid detection?
       bool            m_rightAngle;      // Is it a right angle?
-      unsigned int    m_missCount;       // Number of misses 
-      Scalar          m_mean;            // Color mean
-      Scalar          m_stddev;          // Color standard deviation
-      float           m_areaSum;       
+      unsigned int    m_missCount;       // Number of misses
+      float           m_colorScore; 
+      float           m_perimeter;          
       unsigned int    m_hitCount;
 };
 
