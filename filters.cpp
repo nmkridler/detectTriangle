@@ -23,6 +23,10 @@ void Filters::equalizeRGB(Mat &output)
    equalizeHist(rMat,rOut);
    equalizeHist(gMat,gOut);
    equalizeHist(bMat,bOut);
+   outMat.clear();
+   outMat.push_back(bOut); 
+   outMat.push_back(gOut); 
+   outMat.push_back(rOut); 
    merge(outMat,output);
 }
 
@@ -40,15 +44,18 @@ void Filters::filterOrange( Mat& output)
    inRange(tmpHSV, KinectConstants::HSV_LOWER, 
            KinectConstants::HSV_UPPER, orangeMsk);
 
-   // Dilate the mask and set to 255
-   erode(orangeMsk,orangeMsk,Mat(),Point(-1,-1),5);
+   // dilate(erode)
+   morphologyEx(orangeMsk,orangeMsk,MORPH_OPEN,Mat());
+   morphologyEx(orangeMsk,orangeMsk,MORPH_CLOSE,Mat());
    orangeImg.setTo(Scalar(255),orangeMsk);
 
    // Find the non orange pixels and set to 0
    inRange(orangeImg,Scalar(0),Scalar(254),orangeMsk);
-
-   erode(orangeMsk,orangeMsk,Mat(),Point(-1,-1),30);
-   output.setTo(Scalar(255,255,255),orangeMsk);
-   //GaussianBlur(output, output, Size(11,11), 5.5, 5.5);
+   output.setTo(Scalar(0,0,0),orangeMsk);
 }
-
+void Filters::binaryFilter(Mat const &input, Mat &output)
+{
+   cvtColor(input, output, CV_BGR2GRAY);
+   morphologyEx(output,output,MORPH_CLOSE,Mat());
+   output = output > 200;
+}

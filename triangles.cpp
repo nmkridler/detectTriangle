@@ -1,27 +1,19 @@
 #include "triangles.h"
 #include "constants.h"
 
+bool rankDetection( Detection &first, Detection &second)
+{
+   if( first.getScore() > second.getScore())
+   {
+      return false;
+   } else return true;
+}   
+
 // Constructor
 Triangles::Triangles(freenect_context *_ctx, int _index)
         : MyFreenectDevice(_ctx, _index)         // Device Constructor
 {
 }
-
-//###############################################################
-// getBinary
-//
-//   turn ownMat into a binary image
-//
-//###############################################################
-void Triangles::getBinary(Mat& output){
-   Mat gray;
-   // At this point ownMat should be the Sobel Filtered image
-   cvtColor(ownMat, gray, CV_BGR2GRAY);
-   //GaussianBlur(gray, gray, Size(11,11), 1.5, 1.5);
-   //Canny(gray, gray, 0, 30, 3);
-   dilate(gray, output, Mat());
-   output = output > 128;
-} 
 
 //###############################################################
 // getContour
@@ -31,8 +23,8 @@ void Triangles::getBinary(Mat& output){
 //###############################################################
 void Triangles::getContour(){
    // Create a destination array
-   Mat gray;    // Initialize some Mats
-   getBinary(gray);     // Convert rgb data to grayscale
+   Mat gray;                               // Initialize some Mats
+   Filters::binaryFilter(ownMat,gray);     // Convert rgb data to grayscale
     
    // Contour info
    vector<vector<Point> > contours;
@@ -47,16 +39,29 @@ void Triangles::getContour(){
          vector<Point> approx;
          vector<Point> approxTriangle;
          approxPolyDP(Mat(contours[idx]), approx, 5, true);
-         double areaIdx = contourArea(approx);
-         if( approx.size() > 2 && areaIdx > 0)
+         if( approx.size() > 2 )
          {
-            reduceContour( approx, approxTriangle);
+            double areaIdx = contourArea(approx);
+            if( areaIdx > 0)
+            {
+               reduceContour( approx, approxTriangle);
          
-            // Create a mask
-            if( Stats::validTriangle(approx,approxTriangle)){
-               processContour(approxTriangle);
-            }
-         }
+               // Make sure it's a valid triangle
+               if( Stats::validTriangle(approx,approxTriangle)){
+                  // Get the detection score
+                  float cScore = contourScore(approxTriangle);
+                  // If it's a valid triangle it's a detection
+                  if( cScore > 0 )
+                  { 
+                     // Triangle center of mass
+                     Point triangleCenter(0,0);
+                     Stats::centerOfMass(approxTriangle,triangleCenter);
+                     Detection newDetection(triangleCenter, cScore);
+                     processDetection(newDetection);
+                  }
+               }
+            } // End if positive area 
+         } // End if > 2 sides
       }
    } 
 }
@@ -68,30 +73,27 @@ void Triangles::getContour(){
 //   add to detection list
 //
 //###############################################################
-void Triangles::processContour( vector<Point> &approxTriangle )
+void Triangles::processDetection( Detection &newDetection )
 {
-   // Triangle center of mass
+   // Get the center of mass
    Point triangleCenter(0,0);
-   Stats::centerOfMass(approxTriangle,triangleCenter);
-
-   // Make a new detection object
-   Detection newDetection(approxTriangle);
+   newDetection.getCentMass(triangleCenter);
+   
+   // Check the size of the track list
    if (m_triangle.size() == 0){
-      initializeDetection(newDetection);
       m_triangle.push_back(newDetection);
-      uint64_t lastIdx = m_triangle.size();
-      m_triangle[lastIdx-1].addHit(); 
    }  // If we haven't seen it before at it to the list
    else{
       // Loop through the detections
       // determine the distance to the center of mass
-      unsigned int dIdx = 0;
       bool foundMatch = false;
-      while( dIdx < m_triangle.size() && !foundMatch)
+      list<Detection>::iterator tracks = m_triangle.begin();
+      while( tracks != m_triangle.end() && !foundMatch)
       {
+         
          // get the center of mass
          Point detectMass(0,0);
-         m_triangle[dIdx].getCentMass(detectMass);
+         tracks->getCentMass(detectMass);
          // Calculate the distance
          int dist = sqrt( pow(detectMass.x - triangleCenter.x,2) +
                           pow(detectMass.y - triangleCenter.y,2));
@@ -99,20 +101,17 @@ void Triangles::processContour( vector<Point> &approxTriangle )
          // Take everything within 10 pixels to be the same
          if( dist < TARGET_RELATED_DIST )
          {
+            tracks->setCentMass(triangleCenter);
+            float newScore = newDetection.getScore();
+            tracks->setScore(newScore);
+            tracks->resetMisses();
             foundMatch = true;
-            initializeDetection(m_triangle[dIdx]);
-            m_triangle[dIdx].addHit();
-                
          }
-         ++dIdx;
+  
+         tracks++;
       } // end loop over detections
       if(  !foundMatch ){
-         initializeDetection(newDetection);
-         newDetection.addHit();
          m_triangle.push_back(newDetection);
-         uint64_t lastIdx = m_triangle.size();
-         m_triangle[lastIdx-1].addHit(); 
-          
       }
    } // End check for existing
    // Make sure we don't have too many detections
@@ -123,33 +122,36 @@ void Triangles::processContour( vector<Point> &approxTriangle )
 }
 
 //###############################################################
-// initializeDetection
+// contourScore
 //
-//   initialize the detection
+//   initialize the detection - this returns a score
 // 
 //###############################################################
-void Triangles::initializeDetection( Detection& newDetection)
+float Triangles::contourScore( vector<Point> &triangle )
 {
-   // Set the center of mass
-   Point triangleCenter(0,0);
-   vector<Point> triangle;
-   newDetection.getVertices(triangle);
-
-   // Initialize with valid and zero misses
-   newDetection.setValid(true);
-   newDetection.resetMissCount();
-
-   // Create a vector of floats to hold the distances
+   // To calculate the score we need the distance
    vector<float> distance;
    for( unsigned int idx = 0; idx < triangle.size(); idx++)
    {
       distance.push_back(pixelDepth(triangle[idx]));
    }
-   newDetection.setDistance(distance);
+  
+   // Get a color score
+   float cScore = contourColor( triangle );
 
-   // Set the mean and standard deviation of the color
-   contourColor(newDetection);
+   // Create a vector in metric space
+   vector<Point3f> xyzTriangle;
+   Stats::pixelToMetric(triangle, distance, xyzTriangle);
+
+   // Now we can get a shape score
+   float triangleScore = 0;
+   if( Stats::shapeScore( xyzTriangle, triangleScore) )
+   {
+      return triangleScore + cScore;
+   } else return -1;
 }
+
+
 //###############################################################
 // resetDetections
 //
@@ -158,9 +160,10 @@ void Triangles::initializeDetection( Detection& newDetection)
 //###############################################################
 void Triangles::resetDetections()
 {
-   for( unsigned int idx = 0; idx < m_triangle.size(); ++idx)
+   list<Detection>::iterator tracks;
+   for( tracks = m_triangle.begin(); tracks != m_triangle.end(); ++tracks)
    {
-      m_triangle[idx].addMiss();
+      tracks->addMiss();
    }
 }
 
@@ -172,22 +175,15 @@ void Triangles::resetDetections()
 //###############################################################
 void Triangles::reduceDetections()
 {
-   vector<Detection> newList;
-   for( unsigned int idx = 0; idx < m_triangle.size(); ++idx)
+   list<Detection>::iterator tracks = m_triangle.begin();
+   while( tracks != m_triangle.end() )
    {
-     // Check the hit Count
-     if( m_triangle[idx].getMissCount() > MAX_MISS_THRESH )
-         m_triangle[idx].setValid(false);
-
-     if( !m_triangle[idx].isRightTriangle())
-        m_triangle[idx].setValid(false);
-              
-     // Add only if it's a valid detection
-     if( m_triangle[idx].validDetection())
-         newList.push_back(m_triangle[idx]);
+     // Check the miss Count
+     if( tracks->getMissCount() > MAX_MISS_THRESH )
+     {
+         tracks = m_triangle.erase(tracks);
+     } else ++tracks;
    } 
-   m_triangle.clear();
-   m_triangle = newList;
 }    
 
 //###############################################################
@@ -198,17 +194,20 @@ void Triangles::reduceDetections()
 //###############################################################
 void Triangles::outputDetections()
 {
-
+   // Sort the tracks
+   m_triangle.sort(rankDetection);
    // Loop over the detections
    m_cMass.clear();
-   for( unsigned int dIdx = 0; dIdx < m_triangle.size(); ++dIdx)
+   list<Detection>::iterator tracks = m_triangle.begin();
+   while( tracks != m_triangle.end() )
    {
       Point cMass;
-      m_triangle[dIdx].getCentMass(cMass);
+      tracks->getCentMass(cMass);
       m_cMass.push_back(cMass);
-
+      cout << tracks->getScore() << ",";
+      ++tracks;
    }
-     
+   //cout << endl;
 }
       
 
@@ -272,33 +271,35 @@ void Triangles::reduceContour( const vector<Point> &contour, vector<Point> &newT
 }
 
 // Color of the contour
-void Triangles::contourColor( Detection &newDetection)
+float Triangles::contourColor( vector<Point> &contour)
 {
-   vector<Point> contour;
-   newDetection.getVertices(contour);
    Mat contourMask = Mat::zeros(rgbMat.size(), CV_8UC1);
    Scalar color(255,255,255);
-
+ 
    // Create a mask of a filled contour
    fillConvexPoly(contourMask, contour.data(), 
                   contour.size(), color);
 
+   // Get the center of mass
+   Mat flipRGB;
+   Mat tmpImg;
+   flip(rgbMat, flipRGB,0);
+   Filters::equalizeRGB(flipRGB);
+   cvtColor(flipRGB, tmpImg, CV_RGB2HSV);
+    
    Scalar contourMean;
    Scalar contourStd;
-   Mat tmpImg;
-   cvtColor(rgbMat, tmpImg, CV_RGB2HSV);
    meanStdDev(tmpImg, contourMean, contourStd, contourMask);
-
-   //cout << "Mean: ";
-   //cout << contourMean[0] << " " << contourMean[1] << " " << contourMean[2];
-   //cout << endl;
-   //cout << "Sig: ";
-   //cout << contourStd[0] << " " << contourStd[1] << " " << contourStd[2];
-   //cout << endl;
+#if 0
+   cout << "Mean: "; 
+   cout << contourMean[0] << " " << contourMean[1] << " " << contourMean[2];
+   cout << endl;
+   cout << "Sig: ";
+   cout << contourStd[0] << " " << contourStd[1] << " " << contourStd[2];
+   cout << endl;
+#endif
    // Set the standard deviation and the mean
-   float cScore = Stats::colorScore( contourMean, contourStd);
-   newDetection.setColorScore( cScore );
-
+   return Stats::colorScore( contourMean, contourStd);
 }
 
 
@@ -316,7 +317,7 @@ void Triangles::contourImg()
       resetDetections();
       reduceDetections();
       outputDetections();
-
+      if( m_cMass.size() == 0 ) m_foundTarget = false;
    }
    else m_foundTarget = false;
 }

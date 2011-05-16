@@ -15,5 +15,7 @@ namespace Filters
    // Filter for orange
    void filterOrange(Mat &output);
 
+   // Binary filter
+   void binaryFilter(Mat const &input, Mat &output);
 }
 #endif

@@ -46,3 +46,84 @@ float Stats::colorScore( Scalar &cMean, Scalar &cStdDev)
    return colorScore;
 }
 
+void Stats::pixelToMetric( vector<Point> & pixelVertex, 
+                           vector<float> & distance,
+                           vector<Point3f> & metricVertex )
+{
+   // Make sure metricVertex is empty
+   if( !metricVertex.empty() ) metricVertex.clear();
+
+   // loop through the vertices
+   for( unsigned int idx = 0; idx < pixelVertex.size(); ++idx)
+   {
+      float xFact = distance[idx]/(KinectConstants::fx_d);
+      float yFact = distance[idx]/(KinectConstants::fy_d);
+      Point3f xyzPt((pixelVertex[idx].x - KinectConstants::cx_d)*xFact, 
+                    (pixelVertex[idx].y - KinectConstants::cy_d)*yFact,
+                     distance[idx]);
+      metricVertex.push_back(xyzPt);
+   }
+} 
+
+float Stats::triangleArea(Vec3f &u, Vec3f &v)
+{
+   Vec3f w = u.cross(v);
+   return 0.5*sqrt(w.dot(w));
+}
+
+float Stats::areaError( float const &area)
+{
+   float diff = area - KinectConstants::TARGET_AREA_METERS;
+   return 100.0*sqrt(diff*diff)/KinectConstants::TARGET_AREA_METERS;
+}
+
+float Stats::perimeterError( float const &perimeter)
+{
+   float diff = perimeter - KinectConstants::TARGET_PERIM;
+   return 100.0*sqrt(diff*diff)/KinectConstants::TARGET_PERIM;  
+}
+// Determine if it has a right angle
+bool Stats::shapeScore( vector<Point3f> &xyz, float &score)
+{
+   // Side lengths
+   score = 1000000.0;
+   if( xyz.size() != 3 ) return false;
+   // Combos: 0,1 - 1,2 - 2,0
+   Vec3f u(xyz[0].x - xyz[1].x,
+           xyz[0].y - xyz[1].y,
+           xyz[0].z - xyz[1].z);
+       
+   Vec3f v(xyz[2].x - xyz[1].x,
+           xyz[2].y - xyz[1].y,
+           xyz[2].z - xyz[1].z);
+
+   Vec3f w(xyz[2].x - xyz[0].x,
+           xyz[2].y - xyz[0].y,
+           xyz[2].z - xyz[0].z);
+
+   // Angles (u,v), (u,w), (v,w)
+   float uLength = sqrt(u.dot(u));
+   float vLength = sqrt(v.dot(v));
+   float wLength = sqrt(w.dot(w));
+
+   vector<float> angles;
+   angles.push_back(abs(acos(u.dot(v)/(uLength*vLength))));   
+   angles.push_back(abs(acos(u.dot(w)/(uLength*wLength))));   
+   angles.push_back(abs(acos(w.dot(v)/(vLength*wLength))));   
+   bool rightAngle = false;
+   unsigned int idx = 0;
+   float radeg  = 180.0/KinectConstants::fPi;
+   float ninety = KinectConstants::fPi/2.0;
+   while( !rightAngle && idx != angles.size() )
+   {
+      if( abs( angles[idx] - ninety)*radeg < 10.0 ) 
+         rightAngle = true;
+      idx++;
+   }
+   
+   // Calculate area and perimeter
+   float perimeter = uLength + vLength + wLength;
+   float area = Stats::triangleArea(u,w);
+   score = Stats::areaError(area) + Stats::perimeterError(perimeter);
+   return rightAngle;
+}

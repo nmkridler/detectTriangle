@@ -75,8 +75,8 @@ void driver::update()
       zeroFrame.copyTo(sumFrame);
 
       // Equalize the image and filter for orange 
-      Filters::equalizeRGB(frame);
-      Filters::filterOrange(frame);   // Get only the orange in HSV
+      //Filters::equalizeRGB(frame);
+      //Filters::filterOrange(frame);   // Get only the orange in HSV
 
       // Run the edge detection
       shader();
@@ -95,7 +95,11 @@ void driver::accumulate()
    {
       m_frameCount++;
       Mat floatFrame = Mat::zeros(Size(_iWidth,_iHeight),CV_32FC3);
-      rgbFrame.convertTo(floatFrame,CV_32FC3);
+      Mat tmpFrame;
+      rgbFrame.copyTo(tmpFrame);
+      Filters::equalizeRGB(tmpFrame);
+      Filters::filterOrange(tmpFrame);
+      tmpFrame.convertTo(floatFrame,CV_32FC3);
       cv::accumulate(floatFrame,sumFrame);
    }
    if( m_frameCount == FRAMES_PER_STACK ) m_findTriangles = true;
@@ -250,10 +254,12 @@ void driver::runDetect()
     // Output the detections
     if( device->foundTarget() )
     {
-       for(unsigned int dIdx = 0; dIdx < cMass.size(); dIdx++)
+       cout << cMass.size() << endl;
+       for(unsigned int dIdx = 1; dIdx < cMass.size(); dIdx++)
        {  
           circle(orangeFrame, cMass[dIdx], 60, Scalar(0,0,255),5);
        }
+       circle(orangeFrame, cMass[0], 60, Scalar(255,0,0),5);
     }
 
 }

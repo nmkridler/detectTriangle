@@ -111,7 +111,7 @@ protected: // data
     bool               m_showDepth;       // Show depth?
     bool               m_findTriangles;   // Find triangles?
 private:
-    static unsigned int const  FRAMES_PER_STACK = 10;                                      
+    static unsigned int const  FRAMES_PER_STACK = 5;                                      
 };
 #endif
 

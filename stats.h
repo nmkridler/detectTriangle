@@ -32,7 +32,16 @@ namespace Stats
 
    // Calculate a color score
    float colorScore( Scalar &cMean, Scalar &cStdDev );
+ 
+   void pixelToMetric( vector<Point> & pixelVertex, 
+                       vector<float> & distance,
+                       vector<Point3f> & metricVertex );
    
+   float triangleArea( Vec3f &u, Vec3f &v);
+   float areaError( float const &area);
+   float perimeterError( float const &perimeter);
+   bool  shapeScore( vector<Point3f> &xyz, float &score);
+ 
 }
 
 

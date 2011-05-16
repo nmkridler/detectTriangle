@@ -4,6 +4,7 @@
 #include "kinectdevice.h"
 #include <iostream>
 #include <vector>
+#include <list>
 #include <cmath>
 #include <pthread.h>
 #include <cv.h>
@@ -11,6 +12,7 @@
 #include <highgui.h>
 #include "detection.h"
 #include "stats.h"
+#include "filters.h"
 
 using namespace cv;
 using namespace std;
@@ -23,14 +25,6 @@ class Triangles : public MyFreenectDevice
       Triangles(freenect_context *_ctx, int _index);
 
       //###############################################################
-      // getBinary
-      //
-      //   turn ownMat into a binary image
-      //
-      //###############################################################
-      void getBinary(Mat& output);
-
-      //###############################################################
       // getContour
       //
       //   get a list of contours for this frame
@@ -39,13 +33,13 @@ class Triangles : public MyFreenectDevice
       void getContour();
  
       //###############################################################
-      // processContour
+      // processDetection
       //
       //   determine if the contour is a detection
       //   add to detection list
       //
       //###############################################################
-      void processContour( vector<Point> &approxTriangle );
+      void processDetection( Detection &newDetection);
  
       //###############################################################
       // initializeDetection
@@ -53,8 +47,8 @@ class Triangles : public MyFreenectDevice
       //   initialize the detection
       // 
       //###############################################################
-      void initializeDetection( Detection& newDetection);
-     
+      float contourScore( vector<Point> &contour);
+
       //###############################################################
       // resetDetections
       //
@@ -100,16 +94,16 @@ class Triangles : public MyFreenectDevice
       void reduceContour( const vector<Point> &contour, vector<Point> &newTri);
 
       // Set the color mean and standard deviation of the object
-      void contourColor( Detection &newDetection);
+      float contourColor( vector<Point> &contour);
  
       void contourImg();
     
       bool foundTarget(); 
      
    private:
-      vector<Detection>  m_triangle;
-      vector<Point>      m_cMass;
-      bool               m_foundTarget;
+      list<Detection>      m_triangle;
+      vector<Point>        m_cMass;
+      bool                 m_foundTarget;
 };
 
 #endif

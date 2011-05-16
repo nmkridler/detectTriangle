@@ -42,9 +42,9 @@ namespace KinectConstants
    const int          TARGET_RELATED_DIST = 10;
    const unsigned int MAX_DETECTIONS      = 100;
    const unsigned int MAX_MISS_THRESH     = 4;
-   const Scalar       HSV_LOWER(0,100,100);
-   const Scalar       HSV_UPPER(15,255,255);
-   const Scalar       TARGET_COLOR(10,165,230);
+   const Scalar       HSV_LOWER(0,150,150);
+   const Scalar       HSV_UPPER(10,255,255);
+   const Scalar       TARGET_COLOR(4,200,230);
 
 }
 
