@@ -36,14 +36,22 @@ void Stats::centerOfMass( const vector<Point> &contour, Point &cMass)
 float Stats::colorScore( Scalar &cMean, Scalar &cStdDev)
 {
    float colorScore = 0.0;
+   float totalColor = 0.0;
    colorScore += abs((float)(cMean[0] - KinectConstants::TARGET_COLOR[0]))*
                      (float)cStdDev[0];
+   //totalColor += KinectConstants::TARGET_COLOR[0];
+   totalColor += KinectConstants::TARGET_COLOR[0]*(float)cStdDev[0];
    colorScore += abs((float)(cMean[1] - KinectConstants::TARGET_COLOR[1]))*
                      (float)cStdDev[1];
+   //totalColor += KinectConstants::TARGET_COLOR[1];
+   totalColor += KinectConstants::TARGET_COLOR[1]*(float)cStdDev[1];
    colorScore += abs((float)(cMean[2] - KinectConstants::TARGET_COLOR[2]))*
                      (float)cStdDev[2];
-
-   return colorScore;
+   //totalColor += KinectConstants::TARGET_COLOR[2];
+   totalColor += KinectConstants::TARGET_COLOR[2]*(float)cStdDev[2];
+   
+   //float stdScore = (float)cStdDev[1] + (float)cStdDev[2];
+   return colorScore/totalColor;
 }
 
 void Stats::pixelToMetric( vector<Point> & pixelVertex, 
@@ -89,9 +97,9 @@ bool Stats::shapeScore( vector<Point3f> &xyz, float &score)
    score = 1000000.0;
    if( xyz.size() != 3 ) return false;
    // Combos: 0,1 - 1,2 - 2,0
-   Vec3f u(xyz[0].x - xyz[1].x,
-           xyz[0].y - xyz[1].y,
-           xyz[0].z - xyz[1].z);
+   Vec3f u(xyz[1].x - xyz[0].x,
+           xyz[1].y - xyz[0].y,
+           xyz[1].z - xyz[0].z);
        
    Vec3f v(xyz[2].x - xyz[1].x,
            xyz[2].y - xyz[1].y,
@@ -107,23 +115,37 @@ bool Stats::shapeScore( vector<Point3f> &xyz, float &score)
    float wLength = sqrt(w.dot(w));
 
    vector<float> angles;
-   angles.push_back(abs(acos(u.dot(v)/(uLength*vLength))));   
    angles.push_back(abs(acos(u.dot(w)/(uLength*wLength))));   
+   for( unsigned int i = 0; i < 3; ++i) u[i] = -u[i];
+   angles.push_back(abs(acos(u.dot(v)/(uLength*vLength))));
+   for( unsigned int i = 0; i < 3; ++i)
+   {
+      v[i] = -v[i];
+      w[i] = -w[i];
+   }
    angles.push_back(abs(acos(w.dot(v)/(vLength*wLength))));   
    bool rightAngle = false;
    unsigned int idx = 0;
-   float radeg  = 180.0/KinectConstants::fPi;
    float ninety = KinectConstants::fPi/2.0;
+   float closestTo90 = 100;
+   float idx90 = 0;
    while( !rightAngle && idx != angles.size() )
    {
-      if( abs( angles[idx] - ninety)*radeg < 10.0 ) 
-         rightAngle = true;
-      idx++;
+      float rightError = abs(angles[idx] - ninety)/ninety;
+      if( rightError < closestTo90)
+      {
+         closestTo90 = rightError;
+         idx90 = idx;
+      }
+      ++idx;
    }
-   
+   //cout << angles[idx90]*radeg << "," << closestTo90 << endl;
+   if( closestTo90 < 0.08) rightAngle = true;
    // Calculate area and perimeter
    float perimeter = uLength + vLength + wLength;
    float area = Stats::triangleArea(u,w);
-   score = Stats::areaError(area) + Stats::perimeterError(perimeter);
+   //cout << "area: " << area << "," << perimeter << endl;
+   score = (Stats::areaError(area) + Stats::perimeterError(perimeter) +
+           closestTo90*100.0)/3.0;
    return rightAngle;
 }

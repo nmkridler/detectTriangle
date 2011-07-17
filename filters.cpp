@@ -11,7 +11,7 @@ void Filters::equalizeRGB(Mat &output)
    Mat rOut(output.size(),CV_8UC1);
    Mat gOut(output.size(),CV_8UC1);
    Mat bOut(output.size(),CV_8UC1);
-
+   bOut.setTo(Scalar(0));
    // Make a vector and split
    vector<Mat> outMat;
    outMat.push_back(bMat); 
@@ -22,11 +22,11 @@ void Filters::equalizeRGB(Mat &output)
    // Equalize and copy to output
    equalizeHist(rMat,rOut);
    equalizeHist(gMat,gOut);
-   equalizeHist(bMat,bOut);
+   //equalizeHist(bMat,bOut);
    outMat.clear();
    outMat.push_back(bOut); 
-   outMat.push_back(gOut); 
-   outMat.push_back(rOut); 
+   outMat.push_back(gMat); 
+   outMat.push_back(rMat); 
    merge(outMat,output);
 }
 

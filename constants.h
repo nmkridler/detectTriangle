@@ -37,15 +37,15 @@ namespace KinectConstants
 
    // Thresholds
    const double       TARGET_PIXEL_THRESH = 400.0;
-   const double       TARGET_AREA_METERS  = 0.0287625;
-   const double       TARGET_PERIM        = 0.7;
+   const double       TARGET_AREA_METERS  = 0.033;
+   const double       TARGET_PERIM        = 0.89;
    const int          TARGET_RELATED_DIST = 10;
    const unsigned int MAX_DETECTIONS      = 100;
-   const unsigned int MAX_MISS_THRESH     = 4;
-   const Scalar       HSV_LOWER(0,150,150);
-   const Scalar       HSV_UPPER(10,255,255);
-   const Scalar       TARGET_COLOR(4,200,230);
-
+   const unsigned int MAX_MISS_THRESH     = 10;
+   const Scalar       HSV_LOWER(-1,100,100);
+   const Scalar       HSV_UPPER(15,256,256);
+   const Scalar       TARGET_COLOR(8,190,185);
+   const float        TARGET_SCORE_THRESHOLD = 15.0;
 }
 
 #endif

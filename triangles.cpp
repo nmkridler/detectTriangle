@@ -51,8 +51,9 @@ void Triangles::getContour(){
                   // Get the detection score
                   float cScore = contourScore(approxTriangle);
                   // If it's a valid triangle it's a detection
-                  if( cScore > 0 )
+                  if( cScore < TARGET_SCORE_THRESHOLD && cScore > 0)
                   { 
+               
                      // Triangle center of mass
                      Point triangleCenter(0,0);
                      Stats::centerOfMass(approxTriangle,triangleCenter);
@@ -147,7 +148,7 @@ float Triangles::contourScore( vector<Point> &triangle )
    float triangleScore = 0;
    if( Stats::shapeScore( xyzTriangle, triangleScore) )
    {
-      return triangleScore + cScore;
+      return (triangleScore + 100.0*cScore)/2.0;
    } else return -1;
 }
 
@@ -207,7 +208,7 @@ void Triangles::outputDetections()
       cout << tracks->getScore() << ",";
       ++tracks;
    }
-   //cout << endl;
+   cout << endl;
 }
       
 
@@ -284,7 +285,7 @@ float Triangles::contourColor( vector<Point> &contour)
    Mat flipRGB;
    Mat tmpImg;
    flip(rgbMat, flipRGB,0);
-   Filters::equalizeRGB(flipRGB);
+   //Filters::equalizeRGB(flipRGB);
    cvtColor(flipRGB, tmpImg, CV_RGB2HSV);
     
    Scalar contourMean;

@@ -97,8 +97,8 @@ void driver::accumulate()
       Mat floatFrame = Mat::zeros(Size(_iWidth,_iHeight),CV_32FC3);
       Mat tmpFrame;
       rgbFrame.copyTo(tmpFrame);
-      Filters::equalizeRGB(tmpFrame);
-      Filters::filterOrange(tmpFrame);
+      //Filters::equalizeRGB(tmpFrame);
+      //Filters::filterOrange(tmpFrame);
       tmpFrame.convertTo(floatFrame,CV_32FC3);
       cv::accumulate(floatFrame,sumFrame);
    }
@@ -241,10 +241,11 @@ void driver::runDetect()
     rgbFrame.copyTo(orangeFrame);
 
     // Equalize the image and 
-    Filters::equalizeRGB(orangeFrame);
+    //Filters::equalizeRGB(orangeFrame);
     //if( m_showDepth ) device->depthViewColor(orangeFrame);
     if( m_showDepth ) frame.copyTo(orangeFrame);
-    if( m_filterOrange ) Filters::filterOrange(orangeFrame);
+//    if( m_filterOrange ) Filters::filterOrange(orangeFrame);
+    if( m_filterOrange ) device->depthViewColor(orangeFrame);
 
     // Run the detection process
     device->contourImg();
@@ -254,7 +255,6 @@ void driver::runDetect()
     // Output the detections
     if( device->foundTarget() )
     {
-       cout << cMass.size() << endl;
        for(unsigned int dIdx = 1; dIdx < cMass.size(); dIdx++)
        {  
           circle(orangeFrame, cMass[dIdx], 60, Scalar(0,0,255),5);
