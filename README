@@ -1,0 +1,1 @@
+Uses libfreenect to pull Kinect video/depth feed then OpenCV/OpenGL to process. Still needs some work, mapping from RGB pixel to Depth Pixel is not complete.
