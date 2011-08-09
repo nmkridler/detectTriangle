@@ -31,7 +31,7 @@ public: // methods
     virtual void update()=0;
 
     // Run the shader
-    virtual void shader()=0;
+    void shader();
 
     // Create a texture for the image we want to process
     virtual void createImgTexture()=0;
@@ -53,22 +53,20 @@ public: // methods
     
     // Transfer to texture to an image
     void transferFromTexture(Mat& output);
-  
+
+
 protected: // data
-    // Note: inconsistent naming conventions cause I'm lazy
-    int                m_iWidth;
+    int                m_iWidth;         
     int                m_iHeight;          // The dimensions of our array
-    
     unsigned int       m_outputTex;        // Output texture
     unsigned int       m_iTexture[2];      // The texture used as a data array
-                                          // 0 - read
-                                          // 1 - write 
+                                           // 0 - read
+                                           // 1 - write 
     GLhandleARB        m_programObject;    // the program used to update
-    GLhandleARB        m_fragmentShader;
-
+    GLhandleARB        m_fragmentShader;   // Fragment shader
     GLint              m_texUnit;          // a parameter to the fragment program
-
     GLuint             m_fbo;              // Frame buffer object
+    Mat                frame;              // Mat Frame
 };
 #endif
 

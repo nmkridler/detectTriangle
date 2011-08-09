@@ -76,59 +76,6 @@ void driver::accumulate()
    update();
 }
 
-// Run the RGB filter
-void driver::shader()
-{   
-    // Initialize the frame buffer object
-    initFBO();
-
-    // Attach a READ texture
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-                              GL_COLOR_ATTACHMENT0_EXT,
-                              GL_TEXTURE_2D,m_iTexture[0],0);
-    // Attach a WRITE texture
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-                              GL_COLOR_ATTACHMENT1_EXT,
-                              GL_TEXTURE_2D,m_iTexture[1],0);
-    glDrawBuffer(GL_COLOR_ATTACHMENT1_EXT);
-
-    // Set up the window and bind the image to the texture
-    int vp[4];
-    glGetIntegerv(GL_VIEWPORT, vp);
-    glViewport(0, 0, m_iWidth, m_iHeight);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    // Transfer the frame to the read texture 
-    transferToTexture(frame,m_iTexture[0]);
-        
-    // run the edge detection filter over the geometry texture
-    // Activate the edge detection filter program
-    glUseProgramObjectARB(m_programObject);
-           
-    // identify the bound texture unit as input to the filter
-    glUniform1iARB(m_texUnit, 0);
-         
-    // GPGPU CONCEPT 4: Viewport-Sized Quad = Data Stream Generator.
-    glBegin(GL_QUADS);
-    {            
-        glTexCoord2f(0, 0); glVertex3f(-1, -1, -0.5f);
-        glTexCoord2f(1, 0); glVertex3f( 1, -1, -0.5f);
-        glTexCoord2f(1, 1); glVertex3f( 1,  1, -0.5f);
-        glTexCoord2f(0, 1); glVertex3f(-1,  1, -0.5f);
-    }
-    glEnd();
-      
-    // disable the filter
-    glUseProgramObjectARB(0);
-
-    // Get the results
-    transferFromTexture(frame);
-    glDeleteFramebuffersEXT(1,&m_fbo); 
-
-    // restore the stored viewport dimensions
-    glViewport(vp[0], vp[1], vp[2], vp[3]);
-}
-
 void driver::showStatus()
 {
     // copy into the output

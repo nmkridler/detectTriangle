@@ -30,9 +30,6 @@ public: // methods
     // Accumulate frames
     void accumulate();
 
-    // Sobel Filter
-    void shader();
-
     // Run the triangle detection portion of the code
     void runDetect();
 
@@ -61,7 +58,6 @@ protected: // data
     Freenect::Freenect freenect;          // Freenect device
     TrianglesPtr       device;            // The kinect device and 
                                           // triangle detection object
-    Mat                frame;             // The filtered frame
     Mat                dualFrame;         // The output image 
                                           // (left rgb, right out)
     Mat                orangeFrame;       // The filtered orange RGB frame

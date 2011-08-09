@@ -43,7 +43,7 @@ namespace Orange
    static const size_t       MAX_DETECTIONS      = 100;
    static const size_t       MAX_MISS_THRESH     = 10;
    static const cv::Scalar   TARGET_COLOR(8,190,185);
-   static const float        TARGET_SCORE_THRESHOLD = 15.0;
+   static const float        TARGET_SCORE_THRESHOLD = 45.0;
 }
 
 #endif
