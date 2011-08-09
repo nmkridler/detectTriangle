@@ -9,7 +9,6 @@
 #include <cv.h>
 #include <cxcore.h>
 #include <highgui.h>
-#include "detection.h"
 
 using namespace cv;
 using namespace std;
@@ -31,6 +30,7 @@ class Mutex {
 };
 
 // This controls the Kinect
+// OpenKinect.org is responsible for most of this
 class MyFreenectDevice : public Freenect::FreenectDevice {
    public:
       // Constructor
@@ -43,21 +43,16 @@ class MyFreenectDevice : public Freenect::FreenectDevice {
       void DepthCallback(void* _depth, uint32_t timestamp);
 
       // RGB Video getter 
-      bool getVideo(Mat& output);
+      bool getVideo(Mat & output);
 
       // Depth getter
-      bool getDepth(Mat& output);
+      bool getDepth(Mat & output);
 
       // Set ownMat  
-      void setOwnMat( Mat &inMat );
+      void setOwnMat( Mat & inMat );
       
-      //###############################################################
-      // depthViewColor
-      //
-      //   convert depthMat into color
-      //
-      //###############################################################
-      void depthViewColor(Mat& output);
+      // Convert depthMat into color
+      void depthViewColor(Mat & output);
 
    protected:
       std::vector<float> m_gamma;

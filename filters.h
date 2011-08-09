@@ -5,17 +5,15 @@
 #include <highgui.h>
 #include "constants.h"
 
-using namespace cv;
-
 namespace Filters
 {
-   // Equalize the image
-   void equalizeRGB(Mat &output);   
+   static const cv::Scalar   HSV_LOWER(-1,100,100);
+   static const cv::Scalar   HSV_UPPER(15,256,256);
 
    // Filter for orange
-   void filterOrange(Mat &output);
+   void filterOrange(cv::Mat &output);
 
    // Binary filter
-   void binaryFilter(Mat const &input, Mat &output);
+   void binaryFilter(cv::Mat const &input, cv::Mat &output);
 }
 #endif

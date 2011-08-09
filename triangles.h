@@ -2,27 +2,22 @@
 #define __TRIANGLES_H__
 
 #include "kinectdevice.h"
-#include <iostream>
-#include <vector>
 #include <list>
-#include <cmath>
-#include <pthread.h>
-#include <cv.h>
-#include <cxcore.h>
-#include <highgui.h>
 #include "detection.h"
 #include "stats.h"
 #include "filters.h"
+#include <boost/shared_ptr.hpp>
 
 using namespace cv;
 using namespace std;
+using namespace Orange;
 
 // This controls the Kinect
 class Triangles : public MyFreenectDevice
 {
    public:
       // Constructor
-      Triangles(freenect_context *_ctx, int _index);
+      Triangles(freenect_context *ctx, int index);
 
       //###############################################################
       // getContour
@@ -73,8 +68,11 @@ class Triangles : public MyFreenectDevice
       //###############################################################
       void outputDetections();
      
+      //###############################################################
       // Center of mass getter
-      void getDetectCM( vector<Point> &cMass ) const;
+      // 
+      //###############################################################
+      vector<cv::Point> const & getDetectCM() const { return m_cMass; }
  
       //###############################################################
       // pixelDepth
@@ -93,17 +91,30 @@ class Triangles : public MyFreenectDevice
       //###############################################################
       void reduceContour( const vector<Point> &contour, vector<Point> &newTri);
 
+      //###############################################################
       // Set the color mean and standard deviation of the object
+      // 
+      //###############################################################
       float contourColor( vector<Point> &contour);
  
+      //###############################################################
+      // Extract the image contours
+      // 
+      //###############################################################
       void contourImg();
     
-      bool foundTarget(); 
+      //###############################################################
+      // Extract the image contours
+      // 
+      //###############################################################
+      bool const &foundTarget(); 
      
    private:
-      list<Detection>      m_triangle;
-      vector<Point>        m_cMass;
-      bool                 m_foundTarget;
+      list<Detection>      m_triangle;    ///< List of detections
+      vector<Point>        m_cMass;       ///< Detection locations
+      bool                 m_foundTarget; ///< Find anything?
 };
 
+// Shared Pointer
+typedef boost::shared_ptr<Triangles> TrianglesPtr;
 #endif

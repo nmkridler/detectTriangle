@@ -1,6 +1,7 @@
 #include "triangles.h"
 #include "constants.h"
 
+// Sorting function
 bool rankDetection( Detection &first, Detection &second)
 {
    if( first.getScore() > second.getScore())
@@ -10,8 +11,8 @@ bool rankDetection( Detection &first, Detection &second)
 }   
 
 // Constructor
-Triangles::Triangles(freenect_context *_ctx, int _index)
-        : MyFreenectDevice(_ctx, _index)         // Device Constructor
+Triangles::Triangles(freenect_context *ctx, int index)
+        : MyFreenectDevice(ctx, index)         // Device Constructor
 {
 }
 
@@ -77,8 +78,7 @@ void Triangles::getContour(){
 void Triangles::processDetection( Detection &newDetection )
 {
    // Get the center of mass
-   Point triangleCenter(0,0);
-   newDetection.getCentMass(triangleCenter);
+   Point triangleCenter = newDetection.getCentMass();
    
    // Check the size of the track list
    if (m_triangle.size() == 0){
@@ -93,8 +93,7 @@ void Triangles::processDetection( Detection &newDetection )
       {
          
          // get the center of mass
-         Point detectMass(0,0);
-         tracks->getCentMass(detectMass);
+         Point detectMass = tracks->getCentMass();
          // Calculate the distance
          int dist = sqrt( pow(detectMass.x - triangleCenter.x,2) +
                           pow(detectMass.y - triangleCenter.y,2));
@@ -202,13 +201,9 @@ void Triangles::outputDetections()
    list<Detection>::iterator tracks = m_triangle.begin();
    while( tracks != m_triangle.end() )
    {
-      Point cMass;
-      tracks->getCentMass(cMass);
-      m_cMass.push_back(cMass);
-      cout << tracks->getScore() << ",";
+      m_cMass.push_back(tracks->getCentMass());
       ++tracks;
    }
-   cout << endl;
 }
       
 
@@ -285,20 +280,12 @@ float Triangles::contourColor( vector<Point> &contour)
    Mat flipRGB;
    Mat tmpImg;
    flip(rgbMat, flipRGB,0);
-   //Filters::equalizeRGB(flipRGB);
    cvtColor(flipRGB, tmpImg, CV_RGB2HSV);
     
    Scalar contourMean;
    Scalar contourStd;
    meanStdDev(tmpImg, contourMean, contourStd, contourMask);
-#if 0
-   cout << "Mean: "; 
-   cout << contourMean[0] << " " << contourMean[1] << " " << contourMean[2];
-   cout << endl;
-   cout << "Sig: ";
-   cout << contourStd[0] << " " << contourStd[1] << " " << contourStd[2];
-   cout << endl;
-#endif
+
    // Set the standard deviation and the mean
    return Stats::colorScore( contourMean, contourStd);
 }
@@ -323,12 +310,7 @@ void Triangles::contourImg()
    else m_foundTarget = false;
 }
 
-void Triangles::getDetectCM( vector<Point> &cMass) const
-{
-   cMass = m_cMass;
-}
-
-bool Triangles::foundTarget() 
+bool const & Triangles::foundTarget() 
 {
    if( m_triangle.size() > 0 ) m_foundTarget = true;
    return m_foundTarget;

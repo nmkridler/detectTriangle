@@ -1,61 +1,29 @@
 #include "filters.h"
 
-using namespace cv;
-
-void Filters::equalizeRGB(Mat &output)
-{
-   // Initialize the channels
-   Mat rMat(output.size(),CV_8UC1);
-   Mat gMat(output.size(),CV_8UC1);
-   Mat bMat(output.size(),CV_8UC1);
-   Mat rOut(output.size(),CV_8UC1);
-   Mat gOut(output.size(),CV_8UC1);
-   Mat bOut(output.size(),CV_8UC1);
-   bOut.setTo(Scalar(0));
-   // Make a vector and split
-   vector<Mat> outMat;
-   outMat.push_back(bMat); 
-   outMat.push_back(gMat); 
-   outMat.push_back(rMat); 
-   split(output, outMat );
-
-   // Equalize and copy to output
-   equalizeHist(rMat,rOut);
-   equalizeHist(gMat,gOut);
-   //equalizeHist(bMat,bOut);
-   outMat.clear();
-   outMat.push_back(bOut); 
-   outMat.push_back(gMat); 
-   outMat.push_back(rMat); 
-   merge(outMat,output);
-}
-
 // Filter the feed to get orange only 
-void Filters::filterOrange( Mat& output)
+void Filters::filterOrange( cv::Mat& output)
 {
-    
    // convert RGB to HSV
-   Mat tmpHSV;
-   cvtColor(output, tmpHSV, CV_BGR2HSV);
+   cv::Mat tmpHSV;
+   cv::cvtColor(output, tmpHSV, CV_BGR2HSV);
 
    // Create a mask for the orange color
-   Mat orangeImg = Mat::zeros(tmpHSV.size(), CV_8UC1);
-   Mat orangeMsk(tmpHSV.size(), CV_8UC1);
-   inRange(tmpHSV, KinectConstants::HSV_LOWER, 
-           KinectConstants::HSV_UPPER, orangeMsk);
+   cv::Mat orangeImg = cv::Mat::zeros(tmpHSV.size(), CV_8UC1);
+   cv::Mat orangeMsk(tmpHSV.size(), CV_8UC1);
+   cv::inRange(tmpHSV, Filters::HSV_LOWER,Filters::HSV_UPPER, orangeMsk);
 
    // dilate(erode)
-   morphologyEx(orangeMsk,orangeMsk,MORPH_OPEN,Mat());
-   morphologyEx(orangeMsk,orangeMsk,MORPH_CLOSE,Mat());
-   orangeImg.setTo(Scalar(255),orangeMsk);
+   cv::morphologyEx(orangeMsk,orangeMsk,cv::MORPH_OPEN,cv::Mat());
+   cv::morphologyEx(orangeMsk,orangeMsk,cv::MORPH_CLOSE,cv::Mat());
+   orangeImg.setTo(cv::Scalar(255),orangeMsk);
 
    // Find the non orange pixels and set to 0
-   inRange(orangeImg,Scalar(0),Scalar(254),orangeMsk);
-   output.setTo(Scalar(0,0,0),orangeMsk);
+   cv::inRange(orangeImg,cv::Scalar(0),cv::Scalar(254),orangeMsk);
+   output.setTo(cv::Scalar(0,0,0),orangeMsk);
 }
-void Filters::binaryFilter(Mat const &input, Mat &output)
+void Filters::binaryFilter(cv::Mat const &input, cv::Mat &output)
 {
-   cvtColor(input, output, CV_BGR2GRAY);
-   morphologyEx(output,output,MORPH_CLOSE,Mat());
+   cv::cvtColor(input, output, CV_BGR2GRAY);
+   cv::morphologyEx(output,output,cv::MORPH_CLOSE,cv::Mat());
    output = output > 200;
 }
