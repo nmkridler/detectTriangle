@@ -1,8 +1,5 @@
-#include "libfreenect.h"
-
-#include "kinectdevice.h"
-#include "driver.h"
-#include "triangles.h"
+#include <include/engine.h>
+#include <include/settings.h>
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -20,14 +17,13 @@ using namespace cv;
 using namespace std;
 
 // Global driver
-driver *g_Driver;
+Engine *g_engine;
 double freenect_angle=0;
 
 // GLUT display function
 void display()
 {
-    g_Driver->accumulate();  // update the scene and run the edge detect filter
-    g_Driver->display(); // display the results
+    g_engine->update();
     glutSwapBuffers();
  
 }
@@ -46,27 +42,27 @@ void keyboard( unsigned char key, int /*x*/, int /*y*/)
            if (freenect_angle > 30){
               freenect_angle = 30;
            }
-           g_Driver->setTilt(freenect_angle);
+           //g_Driver->setTilt(freenect_angle);
            break; 
         case 'x': 
            freenect_angle--;
            if (freenect_angle < -30){
               freenect_angle = -30;
            }
-           g_Driver->setTilt(freenect_angle);
+           //g_Driver->setTilt(freenect_angle);
            break;
         case 's': 
            freenect_angle = 0;
-           g_Driver->setTilt(freenect_angle);
+           //g_Driver->setTilt(freenect_angle);
            break;
         case 'd':
-           g_Driver->setDepthFlag();
+           //g_Driver->setDepthFlag();
            break;
         case 'f':
-           g_Driver->setOrangeFlag();
+           //g_Driver->setOrangeFlag();
            break;
         case 'e':
-           g_Driver->resetFlags();
+           //g_Driver->resetFlags();
            break;
         case 27:
            exit (0);
@@ -108,10 +104,7 @@ void initialize()
        fprintf(stderr, "Driver does not support OpenGL Shading Language\n");
        exit(1);
    }
-
-   g_Driver = new driver(640,480);
     
-
 }
 
 // initGL
@@ -126,7 +119,21 @@ void initGL( int *argc, char** argv)
 
 int main(int argc, char **argv) {
 
+    if( argc < 1)
+    {
+   	   std::cout << "Usage: " << std::endl;
+	   std::cout << "./orange filename" << std::endl;
+	   return 0;
+    }
 
+    // Input file name
+    std::string inputFile(argv[argc-1]);
+
+    std::cout << " Running Triangle Detection " << std::endl;
+    std::cout << " Processing Settings File: " << inputFile << std::endl;
+
+    Settings inputSettings(inputFile);
+    if( !inputSettings.readSettings() ) return -1;
     //Initialize OpenGl
     initGL(&argc, argv);
   
@@ -136,6 +143,7 @@ int main(int argc, char **argv) {
     glutReshapeFunc(reshape);
 
     initialize();
+    g_engine = new Engine(inputSettings);
 
     glutMainLoop();
 
