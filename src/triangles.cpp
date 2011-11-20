@@ -1,18 +1,10 @@
 #include <triangles.h>
 #include <constants.h>
 
-// Sorting function
-bool rankDetection( Contact &first, Contact &second)
-{
-   if( first.score > second.score )
-   {
-      return false;
-   } else return true;
-}   
 
 // Constructor
-Triangles::Triangles(int const & maxDet) :
-Detection(maxDet)
+Triangles::Triangles(Settings const & settings) :
+Detection(settings)
 {
 }
 
@@ -22,19 +14,11 @@ void Triangles::processFrame(cv::Mat const & rgb, cv::Mat const & depth)
    Mat contour, mask;
    rgb.copyTo(m_frame);
    depth.copyTo(m_depth);
+   m_list.clear();
+   m_positions.clear();
 
    // Create contours
    getContour();
-
-   // Create the contour image
-   if( m_list.size() > 0)
-   {
-      resetDetections();
-      reduceDetections();
-      outputDetections();
-
-   }
-
 }
 
 //###############################################################
@@ -70,20 +54,22 @@ void Triangles::getContour(){
          
                // Make sure it's a valid triangle
                if( Stats::validTriangle(approx,approxTriangle)){
-                  // Get the detection score
-                  float cScore = contourScore(approxTriangle);
-                  // If it's a valid triangle it's a detection
-                  if( cScore < TARGET_SCORE_THRESHOLD && cScore > 0)
-                  { 
-               
-                     // Triangle center of mass
-                     Point triangleCenter(0,0);
-                     Stats::centerOfMass(approxTriangle,triangleCenter);
-                     Contact newContact;
-                     newContact.position = triangleCenter;
-                     newContact.score = cScore;
-                     processDetection(newContact);
-                  }
+
+                  // Triangle center of mass
+				  Point triangleCenter(0,0);
+				  Stats::centerOfMass(approxTriangle,triangleCenter);
+
+				  // Create a new detection
+            	  Contact newContact;
+            	  newContact.position = triangleCenter;
+                  newContact.score = contourScore(approxTriangle);
+
+                  // Add to the list
+                  m_list.push_back(newContact);
+                  Point2f floatPoint;
+                  floatPoint.x = static_cast<float>(triangleCenter.x);
+                  floatPoint.y = static_cast<float>(triangleCenter.y);
+                  m_positions.push_back(floatPoint);
                }
             } // End if positive area 
          } // End if > 2 sides
@@ -91,55 +77,6 @@ void Triangles::getContour(){
    } 
 }
 
-//###############################################################
-// processContour
-//
-//   determine if the contour is a detection
-//   add to detection list
-//
-//###############################################################
-void Triangles::processDetection( Contact &newDetection )
-{
-   // Get the center of mass
-   Point triangleCenter = newDetection.position;
-   
-   // Check the size of the track list
-   if (m_list.size() == 0){
-      m_list.push_back(newDetection);
-   }  // If we haven't seen it before at it to the list
-   else{
-      // Loop through the detections
-      // determine the distance to the center of mass
-      bool foundMatch = false;
-      ContactList::iterator tracks = m_list.begin();
-      while( tracks != m_list.end() && !foundMatch)
-      {
-         
-         // get the center of mass
-         Point detectMass = tracks->position;
-         // Calculate the distance
-         int dist = sqrt( pow(detectMass.x - triangleCenter.x,2) +
-                          pow(detectMass.y - triangleCenter.y,2));
-          
-         // Take everything within 10 pixels to be the same
-         if( dist < TARGET_RELATED_DIST )
-         {
-            tracks->misses=0;
-            foundMatch = true;
-         }
-  
-         tracks++;
-      } // end loop over detections
-      if(  !foundMatch ){
-         m_list.push_back(newDetection);
-      }
-   } // End check for existing
-   // Make sure we don't have too many detections
-   while( m_list.size() > 10 )
-   {
-      m_list.pop_back();
-   }
-}
 
 //###############################################################
 // contourScore
@@ -171,53 +108,6 @@ float Triangles::contourScore( vector<Point> &triangle )
    } else return -1;
 }
 
-
-//###############################################################
-// resetDetections
-//
-//   set everything to missed
-// 
-//###############################################################
-void Triangles::resetDetections()
-{
-   ContactList::iterator tracks;
-   for( tracks = m_list.begin(); tracks != m_list.end(); ++tracks)
-   {
-      tracks->misses++;
-   }
-}
-
-//###############################################################
-// reduceDetections
-//
-//   cut out missed detections
-// 
-//###############################################################
-void Triangles::reduceDetections()
-{
-   ContactList::iterator tracks = m_list.begin();
-   while( tracks != m_list.end() )
-   {
-     // Check the miss Count
-     if( tracks->misses > MAX_MISS_THRESH )
-     {
-         tracks = m_list.erase(tracks);
-     } else ++tracks;
-   } 
-}    
-
-//###############################################################
-// outputDetections
-//
-//   create a list of the centers
-// 
-//###############################################################
-void Triangles::outputDetections()
-{
-   // Sort the tracks
-   m_list.sort(rankDetection);
-
-}
       
 
 //###############################################################

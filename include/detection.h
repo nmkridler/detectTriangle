@@ -5,22 +5,23 @@
 #include <cv.h>
 #include <constants.h>
 #include <boost/shared_ptr.hpp>
-#include <list>
+#include <settings.h>
+#include <vector>
 
 struct Contact
 {
-	cv::Point position;
-	double    score;
-	int       misses;
+	cv::Point   position;
+	double      score;
+	int         misses;
 };
 
-typedef std::list<Contact> ContactList;
+typedef std::vector<Contact> ContactList;
 
 class Detection 
 {
 public:
    // Constructor
-   Detection(int const & maxDet);
+   Detection(Settings const & settings);
 
    // Destructor
    ~Detection(){}
@@ -28,14 +29,17 @@ public:
    // Getter for the contact list
    ContactList const & getDetections() const { return m_list; }
 
+   // Getter for the contact list
+   Points      const & getPositions() const { return m_positions; }
+
    // Process a frame of data
    virtual void processFrame(cv::Mat const & rgb, cv::Mat const & depth)=0;
 
 
 protected:
-   int             m_maxDetections;  //
+   Settings        m_settings;       // Detector settings
    ContactList     m_list;           // Contact List
-
+   Points          m_positions;      // Contact positions
 };
 
 typedef boost::shared_ptr<Detection> DetectionPtr;

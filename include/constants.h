@@ -2,7 +2,9 @@
 #define __CONSTANTS_H__
 
 #include <cv.h>
+#include <vector>
 
+typedef std::vector<cv::Point2f> Points;
 //
 // The constants used to convert from pixel,depth to XYZ
 // can be found at

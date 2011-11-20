@@ -20,12 +20,14 @@ m_settings(settings)
     } else m_device->depthViewColor(m_depth);
 
     // Create the detection
-    m_detector.reset( new Triangles(m_settings.m_maxDetections) );
+    m_detector.reset( new Triangles(m_settings) );
 
     // Create the display module
     m_display.reset( new Display(1280,480) );
     update();
 
+    // Initialize the events list
+    m_events.clear();
 }
 
 void Engine::setOutput()
@@ -38,16 +40,17 @@ void Engine::setOutput()
 
     // Get the list of outputs and copy them onto the left side
     // Output the detections
-    ContactList detections = m_detector->getDetections();
-    ContactList::iterator contacts = detections.begin();
+    Points::iterator contacts = m_events.begin();
+
     m_rgb.copyTo(leftSide);
-    if( detections.size() > 0)
+
+    if( !m_events.empty())
     {
-		cv::circle(leftSide, contacts->position, 60, cv::Scalar(0,0,255),5);
+		cv::circle(leftSide, *contacts, 60, cv::Scalar(0,0,255),5);
 		++contacts;
-		while( contacts != detections.end() )
+		while( contacts != m_events.end() )
 		{
-		   cv::circle(leftSide, contacts->position, 60, cv::Scalar(255,0,0),5);
+		   cv::circle(leftSide, *contacts, 60, cv::Scalar(255,0,0),5);
 		   ++contacts;
 		}
     }
@@ -57,6 +60,7 @@ void Engine::setOutput()
 }
 void Engine::update()
 {
+
     if(m_device->getVideo(m_rgb) && m_device->getDepth(m_depthRaw))
     {
        m_device->depthViewColor(m_depth);
@@ -64,7 +68,13 @@ void Engine::update()
        // Run the detector
        m_detector->processFrame(m_rgb,m_depthRaw);
 
+       // Run the tracker
+       m_events.clear();
+       if( !m_detector->getPositions().empty())
+          m_tracker.update(m_rgb,m_detector->getPositions(),m_events);
+
        setOutput();
     }
     m_display->update(m_out);
 }
+

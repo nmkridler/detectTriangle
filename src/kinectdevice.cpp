@@ -4,13 +4,13 @@
 // Constructor
 KinectDevice::KinectDevice(freenect_context *_ctx, int _index)
         : Freenect::FreenectDevice(_ctx, _index),         // Device Constructor
-         m_gamma(2048),                                  // gamma
-         depthMat(Size(640,480),CV_16UC1),               // Depth matrix 
-         rgbMat(Size(640,480),CV_8UC3,Scalar(0)),        // RGB matrix
-         m_buffer_depth(FREENECT_DEPTH_11BIT),      // depth buffer
-         m_buffer_rgb(FREENECT_VIDEO_RGB),          // RGB buffer
-         m_new_rgb_frame(false),                         // new RGB frame
-         m_new_depth_frame(false)                        // new depth frame
+         m_gamma(2048),                                   // gamma
+         depthMat(Size(640,480),CV_16UC1),                // Depth matrix
+         rgbMat(Size(640,480),CV_8UC3,Scalar(0)),         // RGB matrix
+         m_buffer_depth(FREENECT_DEPTH_11BIT),            // depth buffer
+         m_buffer_rgb(FREENECT_VIDEO_RGB),                // RGB buffer
+         m_new_rgb_frame(false),                          // new RGB frame
+         m_new_depth_frame(false)                         // new depth frame
 {
    // Fill the gamma array
    for( unsigned int i = 0 ; i < 2048 ; i++) 

@@ -18,7 +18,7 @@ class Triangles : public Detection
 {
 public:
    // Constructor
-   Triangles(int const & maxDet);
+   Triangles(Settings const & settings);
 
    //###############################################################
    // getContour
@@ -44,30 +44,6 @@ public:
    //
    //###############################################################
    float contourScore( vector<Point> &contour);
-
-   //###############################################################
-   // resetDetections
-   //
-   //   set everything to missed
-   //
-   //###############################################################
-   void resetDetections();
-
-   //###############################################################
-   // reduceDetections
-   //
-   //   cut out missed detections
-   //
-   //###############################################################
-   void reduceDetections();
-  
-   //###############################################################
-   // outputDetections
-   //
-   //   create a mask with all of the detections
-   //
-   //###############################################################
-   void outputDetections();
      
    //###############################################################
    // pixelDepth

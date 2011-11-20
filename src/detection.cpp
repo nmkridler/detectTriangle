@@ -2,7 +2,7 @@
 #include "detection.h"
 
 // Constructor for the detection
-Detection::Detection( int const & maxDet ) :
-m_maxDetections(maxDet)
+Detection::Detection( Settings const & settings ) :
+m_settings(settings)
 {
 }

@@ -9,6 +9,7 @@
 #include <settings.h>
 #include <filters.h>
 #include <triangles.h>
+#include <tracker.h>
 
 /////////////////////////////////////////////////////////////////////////////
 // Engine
@@ -23,12 +24,17 @@ public:
     Engine( Settings const & settings);
 
     // Destructor
-    ~Engine(){}
+    ~Engine()
+    {
+    	m_device->stopVideo();
+    	m_device->stopDepth();
+    }
 
     // update
     void update();
 
     void setOutput();
+
 
 private:
     // Run settings
@@ -39,14 +45,17 @@ private:
     cv::Mat      m_depth;
     cv::Mat      m_depthRaw;
     cv::Mat      m_out;
+    Points       m_events;
 
     Freenect::Freenect     freenect;          // Freenect device
 
-    KinectDevicePtr        m_device;           // Get the video frames
+    KinectDevicePtr        m_device;          // Get the video frames
 
     DetectionPtr           m_detector;        // Detection module
 
     DisplayPtr             m_display;         // Output to screen
+
+    Tracker                m_tracker;         // Optical flow tracker
 
 
 };
