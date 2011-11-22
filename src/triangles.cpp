@@ -181,17 +181,16 @@ float Triangles::contourColor( vector<Point> &contour)
                   contour.size(), color);
 
    // Get the center of mass
-   Mat flipRGB;
    Mat tmpImg;
-   flip(m_frame, flipRGB,0);
-   cvtColor(flipRGB, tmpImg, CV_RGB2HSV);
-    
+   cvtColor(m_frame, tmpImg, CV_BGR2HSV);
+
    Scalar contourMean;
    Scalar contourStd;
    meanStdDev(tmpImg, contourMean, contourStd, contourMask);
 
    // Set the standard deviation and the mean
    return Stats::colorScore( contourMean, contourStd);
+
 }
 
 

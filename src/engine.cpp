@@ -1,7 +1,8 @@
 #include <engine.h>
 
 Engine::Engine(Settings const & settings) :
-m_settings(settings)
+m_settings(settings),
+m_filterToggle(0)
 {
 	// Create the kinect device
     m_device.reset(&freenect.createDevice<KinectDevice>(0));
@@ -55,7 +56,22 @@ void Engine::setOutput()
 		}
     }
 
-    m_depth.copyTo(rightSide);
+    switch(m_filterToggle){
+        case DEPTH:
+           m_depth.copyTo(rightSide);
+           break;
+        case CONTOURS:
+           m_rgb.copyTo(rightSide);
+           Filters::binaryFilter(rightSide,m_mask);
+           rightSide.setTo(cv::Scalar(255,255,255),m_mask);
+           break;
+        case ORANGE:
+           m_rgb.copyTo(rightSide);
+           Filters::filterOrange(rightSide);
+           break;
+        default: break;
+    }
+
 
 }
 void Engine::update()

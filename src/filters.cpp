@@ -21,6 +21,15 @@ void Filters::filterOrange( cv::Mat& output)
    cv::inRange(orangeImg,cv::Scalar(0),cv::Scalar(254),orangeMsk);
    output.setTo(cv::Scalar(0,0,0),orangeMsk);
 }
+
+void Filters::edgeDetection(cv::Mat const &input, cv::Mat &output)
+{
+   // Canny edge detector
+   cv::cvtColor(input,output,CV_BGR2GRAY);
+   cv::GaussianBlur( output, output, cv::Size(9, 9), 2, 2 );
+   cv::Canny( output, output, 50, 200, 3 );
+}
+
 void Filters::binaryFilter(cv::Mat const &input, cv::Mat &output)
 {
    // Filter out the orange first
@@ -29,9 +38,7 @@ void Filters::binaryFilter(cv::Mat const &input, cv::Mat &output)
    filterOrange(tmpMat);
 
    // Do the edge detection
-   cv::cvtColor(tmpMat, output, CV_BGR2GRAY);
-   cv::GaussianBlur( output, output, cv::Size(9, 9), 2, 2 );
-   cv::Canny( output, output, 50, 200, 3 );
+   edgeDetection(tmpMat,output);
 
    // Make a binary mask
    output = output > 200;

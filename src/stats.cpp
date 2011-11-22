@@ -37,6 +37,7 @@ float Stats::colorScore( Scalar &cMean, Scalar &cStdDev)
 {
    float colorScore = 0.0;
    float totalColor = 0.0;
+
    colorScore += abs((float)(cMean[0] - Orange::TARGET_COLOR[0]))*
                      (float)cStdDev[0];
    totalColor += Orange::TARGET_COLOR[0]*(float)cStdDev[0];
@@ -67,6 +68,7 @@ void Stats::pixelToMetric( vector<Point> & pixelVertex,
                      distance[idx]);
       metricVertex.push_back(xyzPt);
    }
+
 } 
 
 float Stats::triangleArea(Vec3f &u, Vec3f &v)

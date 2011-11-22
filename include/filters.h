@@ -14,6 +14,9 @@ namespace Filters
    void filterOrange(cv::Mat &output);
 
    // Binary filter
+   void edgeDetection(cv::Mat const &input, cv::Mat &output);
+
+   // Binary filter
    void binaryFilter(cv::Mat const &input, cv::Mat &output);
 }
 #endif

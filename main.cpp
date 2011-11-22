@@ -19,6 +19,7 @@ using namespace std;
 // Global driver
 Engine *g_engine;
 double freenect_angle=0;
+int    filter=0;
 
 // GLUT display function
 void display()
@@ -42,27 +43,22 @@ void keyboard( unsigned char key, int /*x*/, int /*y*/)
            if (freenect_angle > 30){
               freenect_angle = 30;
            }
-           //g_Driver->setTilt(freenect_angle);
+           g_engine->device()->setTiltDegrees(freenect_angle);
            break; 
         case 'x': 
            freenect_angle--;
            if (freenect_angle < -30){
               freenect_angle = -30;
            }
-           //g_Driver->setTilt(freenect_angle);
+           g_engine->device()->setTiltDegrees(freenect_angle);
            break;
         case 's': 
            freenect_angle = 0;
-           //g_Driver->setTilt(freenect_angle);
-           break;
-        case 'd':
-           //g_Driver->setDepthFlag();
+           g_engine->device()->setTiltDegrees(freenect_angle);
            break;
         case 'f':
-           //g_Driver->setOrangeFlag();
-           break;
-        case 'e':
-           //g_Driver->resetFlags();
+           if( filter == 2 ) filter = -1;
+           g_engine->toggleFilter(++filter);
            break;
         case 27:
            exit (0);

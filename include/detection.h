@@ -7,6 +7,7 @@
 #include <boost/shared_ptr.hpp>
 #include <settings.h>
 #include <vector>
+#include <opencv2/highgui/highgui.hpp>
 
 struct Contact
 {
