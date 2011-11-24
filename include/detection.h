@@ -12,8 +12,8 @@
 struct Contact
 {
 	cv::Point   position;
+	cv::Point   dims;
 	double      score;
-	int         misses;
 };
 
 typedef std::vector<Contact> ContactList;
