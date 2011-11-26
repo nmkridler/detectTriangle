@@ -1,17 +1,5 @@
 #include <twobitbp.h>
-float TwoBitBP::pixelSum(cv::Mat     const & image,
-		                 cv::Point2f const & pos,
-		                 cv::Point2f const & size)
-{
-	// The input image should be an integral image so that
-	// it's easy to calculate the summed area of four points
-	// sum = I(x,y) + I(x+w,y+h) - I(x+w,y) - I(x,y+h)
-	return image.at<float>(pos.x,pos.y) +
-		   image.at<float>(pos.x + size.x, pos.y + size.y) -
-		   image.at<float>(pos.x + size.x, pos.y) -
-		   image.at<float>(pos.x, pos.y + size.y);
-}
-
+#include <highgui.h>
 TwoBitBP::TwoBitBP( cv::Point2f const & scale )
 {
 	// Generate randome scales between minScale and maxScale
@@ -30,6 +18,23 @@ TwoBitBP::TwoBitBP( cv::Point2f const & scale )
 			       static_cast<float>(RAND_MAX);
 
 }
+
+float TwoBitBP::pixelSum(cv::Mat     const & image,
+		                 cv::Point   const & pos,
+		                 cv::Point   const & size)
+{
+	// The input image should be an integral image so that
+	// it's easy to calculate the summed area of four points
+	// sum = I(x,y) + I(x+w,y+h) - I(x+w,y) - I(x,y+h)
+	float iA = image.at<float>(pos.x,pos.y);
+    float iB = image.at<float>(pos.x + size.x, pos.y + size.y);
+    float iC = image.at<float>(pos.x + size.x, pos.y);
+    float iD = image.at<float>(pos.x, pos.y + size.y);
+
+    return iA + iB - iC - iD;
+}
+
+
 
 int TwoBitBP::test(cv::Mat   const & image,
 		           cv::Point const & patchPt,
@@ -59,6 +64,5 @@ int TwoBitBP::test(cv::Mat   const & image,
 	scale.y /= 2;
 	float top      = pixelSum(image,pos,scale);
 	float bottom   = pixelSum(image,pos + cv::Point(0,scale.y),scale );
-
     return (left > right ? 0 : 2) + ( top > bottom ? 0 : 1);
 }

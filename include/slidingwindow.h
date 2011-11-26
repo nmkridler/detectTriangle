@@ -8,7 +8,7 @@
 #include <settings.h>
 #include <vector>
 #include <detection.h>
-
+#include <classifier.h>
 
 class SlidingWindow : public Detection
 {
@@ -20,19 +20,18 @@ public:
    // Destructor
    ~SlidingWindow(){}
 
-   void initialize(cv::Vec4d const & boundingBox );
-
    // Process a frame of data
    void processFrame(cv::Mat const & rgb, cv::Mat const & depth);
 
-   double overlap( cv::Vec4d const & boxA,
-		           cv::Vec4d const & boxB);
+   double overlap( Contact const & box);
+
+   void generateBoundingBoxes();
 
 private:
-   cv::Size m_size;
+   cv::Point      m_size;
+   cv::Mat        m_gray;
+   cv::Mat        m_integral;
 
-   cv::Mat  m_gray;
-   cv::Mat  m_integral;
 };
 
 typedef boost::shared_ptr<SlidingWindow> SlidingWindowPtr;

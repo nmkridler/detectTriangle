@@ -8,6 +8,8 @@
 #include <settings.h>
 #include <vector>
 #include <ctype.h>
+#include <detection.h>
+#include <algorithm>
 
 struct TrackerSettings
 {
@@ -26,9 +28,11 @@ public:
 	~Tracker(){}
 
 	// Get the updated location
-	void update(cv::Mat const &frame,
-	            Points  const &in,
-			    Points        &out);
+	void update(cv::Mat const & frame,
+                Contact const & in,
+	            Contact       & out);
+
+	void setPrevious(cv::Mat const & frame );
 
 private:
     // Tracker Options

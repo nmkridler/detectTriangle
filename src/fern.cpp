@@ -7,9 +7,10 @@ m_numNodes(nodeNum)
 {
     // Create the number of leafNodes
 	int leafNodes = static_cast<int>(pow(4.0f,m_numNodes));
+
 	m_positive.assign(leafNodes,0);
 	m_negative.assign(leafNodes,0);
-	m_posteriors.assign(leafNodes,0.0f);
+	m_posteriors.assign(leafNodes,0.);
 
 	// Add to the list of nodes
 	for( int i = 0; i < m_numNodes; ++i)
@@ -40,15 +41,15 @@ void Fern::train( cv::Mat   const & image,
 	// Compute the posterior likelihood of a positive class
 	if( m_positive[leaf] > 0)
 	{
-		m_posteriors[leaf] = static_cast<float>(m_positive[leaf]) /
-				             static_cast<float>(m_positive[leaf] + m_negative[leaf]);
+		m_posteriors[leaf] = static_cast<double>(m_positive[leaf]) /
+				             static_cast<double>(m_positive[leaf] + m_negative[leaf]);
 	}
 }
 
 // Classify a given patch
-float Fern::classify( cv::Mat   const & image,
-                      cv::Point       & patchPt,
-                      cv::Point       & patchDims)
+double Fern::classify( cv::Mat   const & image,
+                       cv::Point       & patchPt,
+                       cv::Point       & patchDims)
 {
    return m_posteriors[getLeafIndex(image,patchPt,patchDims)];
 }
@@ -59,7 +60,7 @@ int Fern::getLeafIndex(cv::Mat    const & image,
 					   cv::Point        & patchDims )
 {
 	// Make sure the patch sizes don't exceed the image size
-	cv::Size imgSize = image.size();
+	cv::Size imgSize = image.size() - cv::Size(1,1);
 	patchPt.x = std::max(std::min(patchPt.x,imgSize.width-2),0);
 	patchPt.y = std::max(std::min(patchPt.y,imgSize.height-2),0);
 

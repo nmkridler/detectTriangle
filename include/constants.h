@@ -4,6 +4,13 @@
 #include <cv.h>
 #include <vector>
 
+struct BoundingBox
+{
+	cv::Point lowerLeft;
+	cv::Point size;
+	bool      set;
+};
+
 typedef std::vector<cv::Point2f> Points;
 //
 // The constants used to convert from pixel,depth to XYZ

@@ -27,15 +27,15 @@ void Classifier::train( cv::Mat   const & image,
 }
 
 // Classify a given patch
-float Classifier::classify( cv::Mat   const & image,
-                            cv::Point       & patchPt,
-                            cv::Point       & patchDims)
+double Classifier::classify( cv::Mat   const & image,
+                             cv::Point       & patchPt,
+                             cv::Point       & patchDims)
 {
-	float sum = 0.0f;
+	double sum = 0.;
 	for( int i = 0; i < m_numFerns; ++i)
 	{
 		sum += mp_ferns[i]->classify(image,patchPt,patchDims);
 	}
-	return sum / static_cast<float>(m_numFerns);
+	return sum / static_cast<double>(m_numFerns);
 }
 

@@ -10,14 +10,16 @@
 #include <filters.h>
 #include <triangles.h>
 #include <tracker.h>
-
-
+#include <slidingwindow.h>
+#include <detection.h>
+#include <constants.h>
 enum FilterToggle
 {
 	DEPTH,
 	ORANGE,
 	CONTOURS
 };
+
 
 /////////////////////////////////////////////////////////////////////////////
 // Engine
@@ -50,6 +52,9 @@ public:
     // Toggle the images
     void toggleFilter(int const & key ){ m_filterToggle = key;}
 
+    // Set bounding box
+    void setBox( BoundingBox const & box);
+
 private:
     // Run settings
     Settings     m_settings;
@@ -60,7 +65,14 @@ private:
     cv::Mat      m_depthRaw;
     cv::Mat      m_out;
     cv::Mat      m_mask;
-    Points       m_events;
+    cv::Mat      m_gray;
+    cv::Mat      m_integral;
+
+    Contact                m_contact;
+
+    bool                   m_reInit;
+    double                 m_confidence;
+    BoundingBox            m_box;
 
     Freenect::Freenect     freenect;          // Freenect device
 

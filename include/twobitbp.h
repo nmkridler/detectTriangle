@@ -21,8 +21,8 @@ public:
 
    // Calculate the sum over a patch
    float pixelSum(cv::Mat     const & image,
-		          cv::Point2f const & pos,
-		          cv::Point2f const & size);
+		          cv::Point   const & pos,
+		          cv::Point   const & size);
 
    // Train the classifier with a single training patch
    int test(cv::Mat   const & image,

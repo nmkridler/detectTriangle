@@ -27,9 +27,9 @@ public:
 		       int       const & patchClass);
 
    // Classify a given patch
-   float classify( cv::Mat   const & image,
-		           cv::Point       & patchPt,
-		           cv::Point       & patchDims);
+   double classify( cv::Mat   const & image,
+		            cv::Point       & patchPt,
+		            cv::Point       & patchDims);
 
 protected:
 

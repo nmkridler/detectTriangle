@@ -17,9 +17,10 @@ using namespace cv;
 using namespace std;
 
 // Global driver
-Engine *g_engine;
-double freenect_angle=0;
-int    filter=0;
+Engine     *g_engine;
+double      freenect_angle=0;
+int         filter=0;
+BoundingBox box;
 
 // GLUT display function
 void display()
@@ -33,7 +34,43 @@ void display()
 void idle(void) {
     glutPostRedisplay();
 }
+void mouse( int button, int state, int x, int y)
+{
+	if( button == GLUT_LEFT_BUTTON )
+	{
+		if( state == GLUT_DOWN )
+		{
+			box.set = false;
+			if( x < 640 && y < 480 )
+			{
+				box.lowerLeft.x = x;
+			    box.lowerLeft.y = 480 - y;
+			    box.set = true;
+			} // Only accept points on the left
+		} else
+		{
+			if( x < 640 && y < 480  && box.set )
+			{
+				box.size.x = x - box.lowerLeft.x;
+				box.size.y = (480 - y) - box.lowerLeft.y;
 
+				// Swap points if negative
+				if( box.size.x < 0)
+				{
+					box.size.x *= -1;
+					box.lowerLeft.x = x;
+				}
+				if( box.size.y < 0)
+				{
+					box.size.y *= -1;
+					box.lowerLeft.y = (480 - y);
+				}
+
+				g_engine->setBox(box);
+			}
+		}
+	}
+}
 // Keyboard
 void keyboard( unsigned char key, int /*x*/, int /*y*/) 
 {
@@ -136,6 +173,7 @@ int main(int argc, char **argv) {
     glutIdleFunc(idle);
     glutDisplayFunc(display);
     glutKeyboardFunc(keyboard);
+    glutMouseFunc(mouse);
     glutReshapeFunc(reshape);
 
     initialize();

@@ -29,7 +29,7 @@ public:
 		       int       const & patchClass);
 
    // Classify a given patch
-   float classify( cv::Mat   const & image,
+   double classify( cv::Mat   const & image,
 		           cv::Point       & patchPt,
 		           cv::Point       & patchDims);
 
@@ -42,7 +42,7 @@ public:
 protected:
 
    int                       m_numNodes;      // Number of nodes
-   std::vector<float>        m_posteriors;    // Precomputed posterior likelihoods
+   std::vector<double>       m_posteriors;    // Precomputed posterior likelihoods
    std::vector<int>          m_positive;      // Number of positive patches in each node
    std::vector<int>          m_negative;      // Number of negative patches in each node
 
