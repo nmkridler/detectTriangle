@@ -39,7 +39,6 @@ private:
     TrackerSettings  m_settings;
 
     // Grayscale images
-    cv::Mat          m_gray;
     cv::Mat          m_prevGray;
 
 };

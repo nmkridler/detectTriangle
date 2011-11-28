@@ -8,7 +8,7 @@
 #include <settings.h>
 #include <vector>
 #include <fern.h>
-
+#include <filters.h>
 class Classifier
 {
 public:
@@ -30,6 +30,12 @@ public:
    double classify( cv::Mat   const & image,
 		            cv::Point       & patchPt,
 		            cv::Point       & patchDims);
+
+   void warpTrainPositive( cv::Mat   const & image,
+   		                   cv::Point       & patchPt,
+   		                   cv::Point       & patchDims);
+
+   void restart();
 
 protected:
 

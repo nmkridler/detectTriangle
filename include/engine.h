@@ -55,6 +55,12 @@ public:
     // Set bounding box
     void setBox( BoundingBox const & box);
 
+    void tldInitialize();
+
+    void tldUpdate();
+
+    void topTriangle();
+
 private:
     // Run settings
     Settings     m_settings;
@@ -71,6 +77,7 @@ private:
     Contact                m_contact;
 
     bool                   m_reInit;
+    bool                   m_initialized;
     double                 m_confidence;
     BoundingBox            m_box;
 

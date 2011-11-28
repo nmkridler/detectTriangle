@@ -24,16 +24,13 @@ class Detection
 {
 public:
    // Constructor
-   Detection(Settings const & settings);
+   Detection(Settings const & settings, cv::Size const & frameSize);
 
    // Destructor
    ~Detection(){}
 
    // Getter for the contact list
    ContactList const & getDetections() const { return m_list; }
-
-   // Getter for the contact list
-   Points      const & getPositions() const { return m_positions; }
 
    // Process a frame of data
    virtual void processFrame(cv::Mat const & rgb, cv::Mat const & depth)=0;
@@ -42,16 +39,21 @@ public:
 
    void setTrackBox(Contact const & box);
 
+   double overlap(Contact const & box);
+
+   void trainNegative(cv::Mat const & integral);
+
+   void tracking(bool const & tracking) {m_tracking = tracking;}
 
 protected:
    Settings        m_settings;       // Detector settings
    ContactList     m_list;           // Contact List
-   Points          m_positions;      // Contact positions
    ClassifierPtr   m_classifier;     // Classifier
    Contact         m_track;          // Top detection
 
    bool            m_tracking;
    cv::Point       m_boxSize;
+   cv::Point       m_size;
 };
 
 typedef boost::shared_ptr<Detection> DetectionPtr;

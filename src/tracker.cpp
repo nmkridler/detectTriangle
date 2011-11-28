@@ -14,8 +14,6 @@ void Tracker::update(cv::Mat     const & frame,
 	                 Contact     const & in,
 			         Contact           & out)
 {
-	// Convert the input to grayscale
-	cv::cvtColor(frame,m_gray,CV_BGR2GRAY);
 
 	// Clear the status and err settings
 	m_settings.status.clear();
@@ -28,19 +26,20 @@ void Tracker::update(cv::Mat     const & frame,
 	// Distribute points over the bounding box
 	for( int x = 1; x < 11; ++x)
 	{
-		for( int y = 0; y < 11; ++y)
+		for( int y = 1; y < 11; ++y)
 		{
 			float xInc = static_cast<float>(x)*xStep;
 			float yInc = static_cast<float>(y)*yStep;
 			cv::Point2f thisPt(static_cast<float>(in.position.x) + xInc,
 					       static_cast<float>(in.position.y) + yInc);
 			prevPts.push_back(thisPt);
+
 		}
 	}
 
 	// Calculate the flow
-	if( m_prevGray.empty() ) m_gray.copyTo(m_prevGray);
-	cv::calcOpticalFlowPyrLK(m_prevGray, m_gray, prevPts, nextPts,
+	if( m_prevGray.empty() ) frame.copyTo(m_prevGray);
+	cv::calcOpticalFlowPyrLK(m_prevGray, frame, prevPts, nextPts,
 			                 m_settings.status, m_settings.err,
 			                 m_settings.windowSize, 3, m_settings.criteria,
 			                 0, 0, 0.001);
@@ -94,11 +93,11 @@ void Tracker::update(cv::Mat     const & frame,
     {
        std::sort(scales.begin(),scales.end());
        idx = scales.size()/2;
-       scale = scales[idx] - 1.0f;
+       scale = (scales[idx] + scales[idx+1])/2.0f - 1.0f;
     }
 
     cv::Point2f offset( static_cast<float>(in.dims.x)*scale/2.0f,
-    		        static_cast<float>(in.dims.y)*scale/2.0f);
+    		            static_cast<float>(in.dims.y)*scale/2.0f);
 
     // Calculate offsets
     out.position.x = in.position.x - static_cast<int>(offset.x - medianDist.x);
@@ -107,10 +106,10 @@ void Tracker::update(cv::Mat     const & frame,
     out.dims.y     = in.dims.y + static_cast<int>(offset.y*2.0f);
 
 	// Swap the images
-	cv::swap(m_prevGray,m_gray);
+	frame.copyTo(m_prevGray);
 }
 
 void Tracker::setPrevious(cv::Mat const & frame)
 {
-	cv::cvtColor(frame,m_prevGray,CV_BGR2GRAY);
+	frame.copyTo(m_prevGray);
 }

@@ -3,8 +3,8 @@
 
 
 // Constructor
-Triangles::Triangles(Settings const & settings) :
-Detection(settings)
+Triangles::Triangles(Settings const & settings, cv::Size const & frameSize) :
+Detection(settings,frameSize)
 {
 }
 
@@ -15,7 +15,6 @@ void Triangles::processFrame(cv::Mat const & rgb, cv::Mat const & depth)
    rgb.copyTo(m_frame);
    depth.copyTo(m_depth);
    m_list.clear();
-   m_positions.clear();
 
    // Create contours
    getContour();
@@ -61,15 +60,18 @@ void Triangles::getContour(){
 
 				  // Create a new detection
             	  Contact newContact;
-            	  newContact.position = triangleCenter;
-                  newContact.score = contourScore(approxTriangle);
+            	  newContact.position = triangleCenter - cv::Point(50,50);
+            	  newContact.dims     = cv::Point(100,100);
+                  newContact.score    = 1./contourScore(approxTriangle);
+                  newContact.valid    = false;
 
+				  if( m_tracking && overlap(newContact) > 0.6)
+				  {
+					  newContact.valid = true;
+				  }
                   // Add to the list
                   m_list.push_back(newContact);
-                  Point2f floatPoint;
-                  floatPoint.x = static_cast<float>(triangleCenter.x);
-                  floatPoint.y = static_cast<float>(triangleCenter.y);
-                  m_positions.push_back(floatPoint);
+
                }
             } // End if positive area 
          } // End if > 2 sides
@@ -84,7 +86,7 @@ void Triangles::getContour(){
 //   initialize the detection - this returns a score
 // 
 //###############################################################
-float Triangles::contourScore( vector<Point> &triangle )
+double Triangles::contourScore( vector<Point> &triangle )
 {
    // To calculate the score we need the distance
    vector<float> distance;
@@ -104,8 +106,11 @@ float Triangles::contourScore( vector<Point> &triangle )
    float triangleScore = 0;
    if( Stats::shapeScore( xyzTriangle, triangleScore) )
    {
-      return (triangleScore + 100.0*cScore)/2.0;
-   } else return -1;
+      double score = static_cast<double>(triangleScore + 100.0*cScore)/2.0;
+      if( score > 0 ) return 1./score;
+
+   }
+   return 1000.;
 }
 
       
@@ -119,6 +124,13 @@ float Triangles::contourScore( vector<Point> &triangle )
 float Triangles::pixelDepth( Point &vertex )
 {
    // Get the depth value for this vertex
+   double x = ((static_cast<double>(vertex.x) - 46.)/586.)*640.;
+   double y = ((static_cast<double>(vertex.y) - 37.)/436.)*480.;
+
+   vertex.x = std::max(static_cast<int>(x),0);
+   vertex.y = std::max(static_cast<int>(y),0);
+   if( vertex.x == 0 || vertex.y == 0 ) return 0.0f;
+
    float depIdx = static_cast<float>(m_depth.at<uint16_t>(vertex));
    return k3*tan(depIdx/k2 + k1);
 

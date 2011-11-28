@@ -18,7 +18,7 @@ class Triangles : public Detection
 {
 public:
    // Constructor
-   Triangles(Settings const & settings);
+   Triangles(Settings const & settings, cv::Size const & frameSize);
 
    //###############################################################
    // getContour
@@ -43,7 +43,7 @@ public:
    //   initialize the detection
    //
    //###############################################################
-   float contourScore( vector<Point> &contour);
+   double contourScore( vector<Point> &contour);
      
    //###############################################################
    // pixelDepth

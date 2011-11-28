@@ -23,14 +23,8 @@ public:
    // Process a frame of data
    void processFrame(cv::Mat const & rgb, cv::Mat const & depth);
 
-   double overlap( Contact const & box);
+   void generateBoundingBoxes(cv::Mat const & integral);
 
-   void generateBoundingBoxes();
-
-private:
-   cv::Point      m_size;
-   cv::Mat        m_gray;
-   cv::Mat        m_integral;
 
 };
 

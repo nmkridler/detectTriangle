@@ -18,5 +18,12 @@ namespace Filters
 
    // Binary filter
    void binaryFilter(cv::Mat const &input, cv::Mat &output);
+
+   void randWarpROI(cv::Mat    const & input,
+   		            cv::Point  const & corner,
+   		            cv::Point  const & size,
+   		            cv::Mat & output );
+
+   double randHalf();
 }
 #endif

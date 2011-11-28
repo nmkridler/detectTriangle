@@ -28,14 +28,15 @@ void Fern::train( cv::Mat   const & image,
 {
 	// Determine the leaf this patch belongs to
 	int leaf = getLeafIndex(image,patchPt,patchDims);
+
 	// Increment the appropriate leaf
 	if( patchClass == 0)
 	{
-		++m_negative[leaf];
+		m_negative[leaf]++;
 	}
 	else
 	{
-		++m_positive[leaf];
+		m_positive[leaf]++;
 	}
 
 	// Compute the posterior likelihood of a positive class
@@ -74,4 +75,11 @@ int Fern::getLeafIndex(cv::Mat    const & image,
 		leaf = leaf | (mp_twoBitBP[i]->test(image,patchPt,patchDims) << i*2);
 	}
 	return leaf;
+}
+
+void Fern::restart()
+{
+	m_posteriors.assign(m_leafNodes,0.);
+	m_positive.assign(m_leafNodes,0);
+	m_negative.assign(m_leafNodes,0);
 }

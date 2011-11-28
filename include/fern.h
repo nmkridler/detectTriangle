@@ -38,10 +38,13 @@ public:
 		            cv::Point        & patchPt,
 		            cv::Point        & patchDims );
 
+   void restart();
+
 
 protected:
 
    int                       m_numNodes;      // Number of nodes
+   int                       m_leafNodes;     // Number of leaves
    std::vector<double>       m_posteriors;    // Precomputed posterior likelihoods
    std::vector<int>          m_positive;      // Number of positive patches in each node
    std::vector<int>          m_negative;      // Number of negative patches in each node

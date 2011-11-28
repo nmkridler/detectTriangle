@@ -39,3 +39,25 @@ double Classifier::classify( cv::Mat   const & image,
 	return sum / static_cast<double>(m_numFerns);
 }
 
+void Classifier::warpTrainPositive( cv::Mat   const & image,
+		                            cv::Point       & patchPt,
+		                            cv::Point       & patchDims)
+{
+   cv::Mat warp;
+   // Warp a bunch of times and train
+   for( int tIdx = 0; tIdx < 20; ++tIdx)
+   {
+	   Filters::randWarpROI(image,patchPt,patchDims,warp);
+	   train(warp,patchPt,patchDims,1);
+   }
+
+}
+
+// Train the classifier with a single training patch
+void Classifier::restart()
+{
+   for(int i = 0; i < m_numFerns; ++i)
+   {
+	   mp_ferns[i]->restart();
+   }
+}
