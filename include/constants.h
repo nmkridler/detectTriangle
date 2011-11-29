@@ -11,16 +11,35 @@ struct BoundingBox
 	bool      set;
 };
 
+// Feature ordering
+//	double area;
+//	double perimeter;
+//	double hue;
+//	double saturation;
+//	double value;
+//	double angle;
+typedef std::vector<double> Feature;
+
 typedef std::vector<cv::Point2f> Points;
 //
 // The constants used to convert from pixel,depth to XYZ
 // can be found at
 // nicolas.burrus.name/index.php/Research/KinectCalibration
 //
-namespace Orange
+namespace Kinect
 {
+
+   // Covariance matrix
+   static const cv::Mat COVAR = (cv::Mat_<double>(6,6) <<
+		     0.000000696721524596828,0.0000117970827515673,0.0000053769696904994,-0.000271291326412308,-0.000127318932365444,-0.000633632765275645,
+             0.0000117970827515673,0.00022862950463627,0.000073478184788449,-0.00543368652086154,-0.00235017298946271,-0.00509799782545137,
+             0.0000053769696904994,0.000073478184788449,0.184005069149646,0.142144138534154,-0.0871806115153611,0.0108628516179503,
+            -0.000271291326412308,-0.00543368652086154,0.142144138534154,3.13725550178461,0.241023681723077,-0.14947756368,
+            -0.000127318932365444,-0.00235017298946271,-0.0871806115153611,0.241023681723077,0.364509111233137,-0.14978869463574,
+            -0.000633632765275645,-0.00509799782545137,0.0108628516179503,-0.14947756368,-0.14978869463574,2.86836997582429);
+
    // PI
-   static const float  fPi    =  3.14159265;
+   static const double  fPi    =  3.14159265;
 
    // Constants for RGB conversion
    static const double fx_rgb =  5.2921508098293293e+02;
@@ -44,15 +63,6 @@ namespace Orange
    static const double p2_d   =  5.0350940090814270e-03;
    static const double k3_d   = -1.3053628089976321e+00;
 
-   // Thresholds
-   static const double       TARGET_PIXEL_THRESH = 400.0;
-   static const double       TARGET_AREA_METERS  = 0.033;
-   static const double       TARGET_PERIM        = 0.89;
-   static const int          TARGET_RELATED_DIST = 10;
-   static const int          MAX_DETECTIONS      = 100;
-   static const int          MAX_MISS_THRESH     = 10;
-   static const cv::Scalar   TARGET_COLOR(8,190,185);
-   static const float        TARGET_SCORE_THRESHOLD = 45.0;
 }
 
 #endif

@@ -60,6 +60,7 @@ bool KinectDevice::getDepth(Mat& output) {
    m_depth_mutex.lock();
    if(m_new_depth_frame) {
       depthMat.copyTo(output);
+      flip(output,output,0);
       m_new_depth_frame = false;
       m_depth_mutex.unlock();
       return true;
@@ -122,5 +123,6 @@ void KinectDevice::depthViewColor(Mat& output)
       } 
    } 
    flip(output,output,0);
+
 }
 

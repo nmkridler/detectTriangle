@@ -8,10 +8,8 @@
 #include <stats.h>
 #include <filters.h>
 #include <boost/shared_ptr.hpp>
+#include <constants.h>
 
-using namespace cv;
-using namespace std;
-using namespace Orange;
 
 // This does the detection process
 class Triangles : public Detection
@@ -27,58 +25,42 @@ public:
    //
    //###############################################################
    void getContour();
-
-   //###############################################################
-   // processDetection
-   //
-   //   determine if the contour is a detection
-   //   add to detection list
-   //
-   //###############################################################
-   void processDetection( Contact &newDetection);
  
    //###############################################################
-   // initializeDetection
-   //
-   //   initialize the detection
-   //
+   // Calculate a score
    //###############################################################
-   double contourScore( vector<Point> &contour);
-     
+   double contourScore( std::vector<cv::Point> const & triangle,
+   		                Feature                      & features);
+
    //###############################################################
    // pixelDepth
-   //
-   //   determine the depth in meters
-   //
    //###############################################################
-   float pixelDepth( Point &vertex );
+   double pixelDepth( cv::Point const & vertex );
 
    //###############################################################
    // reduceContour
-   //
-   //   reduces the contour to the three vertices furthest from
-   //   the center of mass
-   //
    //###############################################################
-   void reduceContour( const vector<Point> &contour, vector<Point> &newTri);
+   void reduceContour( std::vector<cv::Point> const & contour,
+   		               std::vector<cv::Point>       & newTri);
 
    //###############################################################
    // Set the color mean and standard deviation of the object
-   //
    //###############################################################
-   float contourColor( vector<Point> &contour);
+   void contourColor( std::vector<cv::Point> const & contour,
+   		              Feature                      & features);
  
 
    //###############################################################
    // Process a frame of data
-   //
    //###############################################################
    void processFrame(cv::Mat const & rgb, cv::Mat const & depth);
+
 private:
 
    cv::Mat m_frame;
    cv::Mat m_depth;
-
+   Feature m_target;
+   cv::Mat m_inverse;
    static const float k1 = 1.1863;
    static const float k2 = 2842.5;
    static const float k3 = 0.1236;

@@ -1,59 +1,28 @@
 #include <stats.h>
 
-using namespace cv;
-
-//###############################################################
-// validTriangle
-//
-//   check all the vertices to see if they are within the triangle
-// 
-//###############################################################
-bool Stats::validTriangle( const vector<Point> &contour, 
-                           const vector<Point> &triangle)
+bool Stats::validTriangle( std::vector<cv::Point> const & contour,
+                           std::vector<cv::Point> const & triangle)
 {
    bool foundStray = false;
    for( unsigned int idx = 0; idx < contour.size(); ++idx)
    {
-      if( pointPolygonTest(Mat(triangle),contour[idx],false) < 0.0)
+      if( cv::pointPolygonTest(cv::Mat(triangle),contour[idx],false) < 0.0)
          foundStray = true;
    }
    return !foundStray;
 }
-//###############################################################
-// centerOfMass
-//
-//   determine the object's center of mass
-// 
-//###############################################################
-void Stats::centerOfMass( const vector<Point> &contour, Point &cMass)
+
+void Stats::centerOfMass( std::vector<cv::Point> const & contour, cv::Point & cMass)
 {
    // Calculate the moments       
-   Moments cMoments = moments(Mat(contour));
-   cMass.x = (int)(cMoments.m10/cMoments.m00);
-   cMass.y = (int)(cMoments.m01/cMoments.m00);
+   cv::Moments cMoments = cv::moments(cv::Mat(contour));
+   cMass.x = static_cast<int>(cMoments.m10/cMoments.m00);
+   cMass.y = static_cast<int>(cMoments.m01/cMoments.m00);
 }
 
-float Stats::colorScore( Scalar &cMean, Scalar &cStdDev)
-{
-   float colorScore = 0.0;
-   float totalColor = 0.0;
-
-   colorScore += abs((float)(cMean[0] - Orange::TARGET_COLOR[0]))*
-                     (float)cStdDev[0];
-   totalColor += Orange::TARGET_COLOR[0]*(float)cStdDev[0];
-   colorScore += abs((float)(cMean[1] - Orange::TARGET_COLOR[1]))*
-                     (float)cStdDev[1];
-   totalColor += Orange::TARGET_COLOR[1]*(float)cStdDev[1];
-   colorScore += abs((float)(cMean[2] - Orange::TARGET_COLOR[2]))*
-                     (float)cStdDev[2];
-   totalColor += Orange::TARGET_COLOR[2]*(float)cStdDev[2];
-   
-   return colorScore/totalColor;
-}
-
-void Stats::pixelToMetric( vector<Point> & pixelVertex, 
-                           vector<float> & distance,
-                           vector<Point3f> & metricVertex )
+void Stats::pixelToMetric( std::vector<cv::Point>   const & pixelVertex,
+                           std::vector<double>      const & distance,
+                           std::vector<cv::Point3d>       & metricVertex )
 {
    // Make sure metricVertex is empty
    if( !metricVertex.empty() ) metricVertex.clear();
@@ -61,85 +30,88 @@ void Stats::pixelToMetric( vector<Point> & pixelVertex,
    // loop through the vertices
    for( unsigned int idx = 0; idx < pixelVertex.size(); ++idx)
    {
-      float xFact = distance[idx]/(Orange::fx_d);
-      float yFact = distance[idx]/(Orange::fy_d);
-      Point3f xyzPt((pixelVertex[idx].x - Orange::cx_d)*xFact, 
-                    (pixelVertex[idx].y - Orange::cy_d)*yFact,
-                     distance[idx]);
+
+      double xFact = distance[idx]/(Kinect::fx_d);
+      double yFact = distance[idx]/(Kinect::fy_d);
+      cv::Point3d xyzPt((static_cast<double>(pixelVertex[idx].x) - Kinect::cx_d)*xFact,
+                        (static_cast<double>(pixelVertex[idx].y) - Kinect::cy_d)*yFact,
+                         distance[idx]);
       metricVertex.push_back(xyzPt);
    }
 
 } 
-
-float Stats::triangleArea(Vec3f &u, Vec3f &v)
+//###############################################################
+// area of a triangle
+//###############################################################
+double Stats::triangleArea( cv::Vec3d const & u, cv::Vec3d const & v)
 {
-   Vec3f w = u.cross(v);
+   cv::Vec3d w = u.cross(v);
    return 0.5*sqrt(w.dot(w));
 }
 
-float Stats::areaError( float const &area)
+//###############################################################
+// Triangle shape ( sides / angles)
+//###############################################################
+void Stats::shape( std::vector<cv::Point3d>  const  & xyz,
+	     	       double                           & perimeter,
+		           double                           & angle,
+		           double                           & area)
 {
-   float diff = area - Orange::TARGET_AREA_METERS;
-   return 100.0*sqrt(diff*diff)/Orange::TARGET_AREA_METERS;
-}
-
-float Stats::perimeterError( float const &perimeter)
-{
-   float diff = perimeter - Orange::TARGET_PERIM;
-   return 100.0*sqrt(diff*diff)/Orange::TARGET_PERIM;  
-}
-// Determine if it has a right angle
-bool Stats::shapeScore( vector<Point3f> &xyz, float &score)
-{
-   // Side lengths
-   score = 1000000.0;
-   if( xyz.size() != 3 ) return false;
-   // Combos: 0,1 - 1,2 - 2,0
-   Vec3f u(xyz[1].x - xyz[0].x,
-           xyz[1].y - xyz[0].y,
-           xyz[1].z - xyz[0].z);
+   // Set the perimeter to 0
+   perimeter = 0.;
+   angle  = 0.;
+   area   = 0.;
+   if( xyz.size() == 3 )
+   {
+      // Combos: 0,1 - 1,2 - 2,0
+      cv::Vec3d u(xyz[1].x - xyz[0].x,
+                  xyz[1].y - xyz[0].y,
+                  xyz[1].z - xyz[0].z);
        
-   Vec3f v(xyz[2].x - xyz[1].x,
-           xyz[2].y - xyz[1].y,
-           xyz[2].z - xyz[1].z);
+      cv::Vec3d v(xyz[2].x - xyz[1].x,
+                  xyz[2].y - xyz[1].y,
+                  xyz[2].z - xyz[1].z);
 
-   Vec3f w(xyz[2].x - xyz[0].x,
-           xyz[2].y - xyz[0].y,
-           xyz[2].z - xyz[0].z);
+      cv::Vec3d w(xyz[2].x - xyz[0].x,
+                  xyz[2].y - xyz[0].y,
+                  xyz[2].z - xyz[0].z);
 
-   // Angles (u,v), (u,w), (v,w)
-   float uLength = sqrt(u.dot(u));
-   float vLength = sqrt(v.dot(v));
-   float wLength = sqrt(w.dot(w));
+      // Angles (u,v), (u,w), (v,w)
+      double uLength = sqrt(u.dot(u));
+      double vLength = sqrt(v.dot(v));
+      double wLength = sqrt(w.dot(w));
 
-   vector<float> angles;
-   angles.push_back(abs(acos(u.dot(w)/(uLength*wLength))));   
-   for( unsigned int i = 0; i < 3; ++i) u[i] = -u[i];
-   angles.push_back(abs(acos(u.dot(v)/(uLength*vLength))));
-   for( unsigned int i = 0; i < 3; ++i)
-   {
-      v[i] = -v[i];
-      w[i] = -w[i];
-   }
-   angles.push_back(abs(acos(w.dot(v)/(vLength*wLength))));   
-   bool rightAngle = false;
-   unsigned int idx = 0;
-   float ninety = Orange::fPi/2.0;
-   float closestTo90 = 100;
-   while( !rightAngle && idx != angles.size() )
-   {
-      float rightError = abs(angles[idx] - ninety)/ninety;
-      if( rightError < closestTo90)
+      perimeter = uLength + vLength + wLength;
+
+      // Determine all of the angles
+      std::vector<double> angles;
+      angles.push_back(std::abs(acos(u.dot(w)/(uLength*wLength))));
+      for( size_t i = 0; i < 3; ++i) u[i] *= -1.;
+      angles.push_back(std::abs(acos(u.dot(v)/(uLength*vLength))));
+      for( size_t i = 0; i < 3; ++i)
       {
-         closestTo90 = rightError;
+         v[i] *= -1;
+         w[i] *= -1;
       }
-      ++idx;
+      angles.push_back(std::abs(acos(w.dot(v)/(vLength*wLength))));
+
+      // Figure out which one is the max
+      angle = angles[0];
+      for( size_t i = 1; i < 3; ++i)
+      {
+    	  if(angles[i] > angle) angle = angles[i];
+      }
+      angle *= (180./Kinect::fPi);
+      area = Stats::triangleArea(u,w);
    }
-   if( closestTo90 < 0.08) rightAngle = true;
-   // Calculate area and perimeter
-   float perimeter = uLength + vLength + wLength;
-   float area = Stats::triangleArea(u,w);
-   score = (Stats::areaError(area) + Stats::perimeterError(perimeter) +
-           closestTo90*100.0)/3.0;
-   return rightAngle;
+
+}
+
+double Stats::similarity(Feature const & u, Feature const & v, cv::Mat const & iCovar)
+{
+#if 0
+   for(size_t i = 0; i < 5; ++i) std::cout << u[i] << ",";
+   std::cout << u[5] << std::endl;
+#endif
+   return cv::Mahalanobis(cv::Mat(u),cv::Mat(v),iCovar);
 }

@@ -1,3 +1,4 @@
-dims 0.15,0.30
-color 255,255,255
-numDet 10
+dims 0.24,0.16,0.28
+color 10.0,170.4,252.5
+thresh 9
+misses 5

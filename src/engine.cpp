@@ -2,6 +2,7 @@
 
 Engine::Engine(Settings const & settings) :
 m_settings(settings),
+m_missCount(0),
 m_reInit(false),
 m_initialized(false),
 m_confidence(1.),
@@ -27,8 +28,8 @@ m_filterToggle(0)
     } else m_device->depthViewColor(m_depth);
 
     // Create the detection
-    m_detector.reset( new SlidingWindow(m_settings,m_rgb.size()) );
-    //m_detector.reset( new Triangles(m_settings,m_rgb.size()));
+    //m_detector.reset( new SlidingWindow(m_settings,m_rgb.size()) );
+    m_detector.reset( new Triangles(m_settings,m_rgb.size()));
     // Create the display module
     m_display.reset( new Display(1280,480) );
 
@@ -56,12 +57,27 @@ void Engine::setOutput()
 
     m_rgb.copyTo(leftSide);
 
+#if 1
     if( m_box.set )
     {
 		cv::rectangle(leftSide,m_contact.position,m_contact.position + m_contact.dims,
 				      Scalar(0,0,255),5);
-    }
 
+		std::cout << m_contact.score << std::endl;
+    }
+#endif
+#if 0
+    ContactList contacts = m_detector->getDetections();
+    for( size_t idx = 0; idx < contacts.size(); ++idx)
+    {
+       if( contacts[idx].score < m_settings.threshold)
+       {
+   		cv::rectangle(leftSide,contacts[idx].position,
+   				      contacts[idx].position + contacts[idx].dims,
+   				      Scalar(0,0,255),5);
+       }
+    }
+#endif
     switch(m_filterToggle){
         case DEPTH:
            m_depth.copyTo(rightSide);
@@ -114,7 +130,7 @@ void Engine::update()
     if(m_device->getVideo(m_rgb) && m_device->getDepth(m_depthRaw))
     {
        m_device->depthViewColor(m_depth);
-
+#if 0
        // Create a grayscale image
        cv::cvtColor(m_rgb,m_gray,CV_BGR2GRAY);
      //  if( !m_reInit && !m_initialized ) topTriangle();
@@ -130,9 +146,29 @@ void Engine::update()
        {
     	   m_tracker.setPrevious(m_gray);
        }
-
+#endif
+       m_detector->processFrame(m_rgb,m_depthRaw);
+       // Get the greatest detected patch confidence
+       ContactList contacts = m_detector->getDetections();
+       double minScore = m_settings.threshold;
+       for( size_t idx = 0; idx < contacts.size(); ++idx)
+       {
+          if( contacts[idx].score < minScore)
+          {
+             minScore = contacts[idx].score;
+             m_contact = contacts[idx];
+             m_box.set = true;
+             m_missCount = 0;
+          }
+       }
+       if( contacts.empty() && m_box.set)
+       {
+    	   ++m_missCount;
+       }
+       if( m_missCount > m_settings.misses ) m_box.set = false;
 
        setOutput();
+
     }
     m_display->update(m_out);
 }

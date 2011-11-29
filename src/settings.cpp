@@ -15,7 +15,6 @@ m_settingsFile(fileName)
 // The file should be formatted as follows
 // dims    base, height
 // color   red,green,blue
-// numDet  number of detections
 //
 //////////////////////////////////////////////////////////
 bool Settings::readSettings()
@@ -50,9 +49,10 @@ bool Settings::readSettings()
    tmpStr.clear();
    std::vector<std::string> strVec;
    while(getline(parseStr,tmpStr,',')) strVec.push_back(tmpStr);
-   if( strVec.size() < 2) return false;
-   m_dimensions.x = std::atof(strVec[0].c_str());
-   m_dimensions.y = std::atof(strVec[1].c_str());
+   if( strVec.size() < 3) return false;
+   dimensions.x = std::atof(strVec[0].c_str());
+   dimensions.y = std::atof(strVec[1].c_str());
+   dimensions.z = std::atof(strVec[2].c_str());
 
    // Create a stringstream for the color
    std::stringstream parseRGB(fMap["color"]);
@@ -60,12 +60,11 @@ bool Settings::readSettings()
    strVec.clear();
    while(getline(parseRGB,tmpStr,',')) strVec.push_back(tmpStr);
    if( strVec.size() < 3) return false;
-   m_color.x = std::atof(strVec[0].c_str());
-   m_color.y = std::atof(strVec[1].c_str());
-   m_color.z = std::atof(strVec[2].c_str());
+   color.x = std::atof(strVec[0].c_str());
+   color.y = std::atof(strVec[1].c_str());
+   color.z = std::atof(strVec[2].c_str());
 
-   // Set the maximum number of detections
-   m_maxDetections = std::atoi(fMap["numDet"].c_str());
- 
+   threshold = std::atof(fMap["thresh"].c_str());
+   misses    = std::atoi(fMap["misses"].c_str());
    return true;
 }

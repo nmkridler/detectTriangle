@@ -26,9 +26,10 @@ class Settings
       bool readSettings();
 
       // Settings are public
-      cv::Point2d                m_dimensions;     // x: base, y: height
-      cv::Point3d                m_color;          // x: red, y: green, z: blue
-      int                        m_maxDetections;  // Number of allowable detections
+      cv::Point3d                dimensions;     // x: base, y: height z: hypotenuse
+      cv::Point3d                color;          // x: red, y: green, z: blue
+      double                     threshold;      // detection threshold
+      int                        misses;         // number of allowable misses
 
    private:
 

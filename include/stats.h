@@ -9,38 +9,45 @@
 #include <highgui.h>
 #include <constants.h>
 
-using namespace std;
-using namespace cv;
+
 namespace Stats
 {
    //###############################################################
    // validTriangle
-   //
-   //   check all the vertices to see if they are within the triangle
-   // 
    //###############################################################
-   bool validTriangle( const vector<Point> &contour, 
-                       const vector<Point> &triangle);
+   bool validTriangle( std::vector<cv::Point> const & contour,
+                       std::vector<cv::Point> const & triangle);
 
    //###############################################################
    // centerOfMass
-   //
-   //   determine the object's center of mass
-   // 
    //###############################################################
-   void centerOfMass( const vector<Point> &contour, Point &cMass);
-
-   // Calculate a color score
-   float colorScore( Scalar &cMean, Scalar &cStdDev );
+   void centerOfMass( std::vector<cv::Point> const & contour, cv::Point & cMass);
  
-   void pixelToMetric( vector<Point> & pixelVertex, 
-                       vector<float> & distance,
-                       vector<Point3f> & metricVertex );
    
-   float triangleArea( Vec3f &u, Vec3f &v);
-   float areaError( float const &area);
-   float perimeterError( float const &perimeter);
-   bool  shapeScore( vector<Point3f> &xyz, float &score);
+   //###############################################################
+   // Transform to metric space
+   //###############################################################
+   void pixelToMetric( std::vector<cv::Point>   const & pixelVertex,
+                       std::vector<double>      const & distance,
+                       std::vector<cv::Point3d>       & metricVertex );
+
+   //###############################################################
+   // area of a triangle
+   //###############################################################
+   double triangleArea( cv::Vec3d const & u, cv::Vec3d const & v);
+
+   //###############################################################
+   // Triangle shape ( sides / angles)
+   //###############################################################
+   void shape( std::vector<cv::Point3d>  const  & xyz,
+		       double                           & perimeter,
+		       double                           & angle,
+		       double                           & area);
+
+   //###############################################################
+   // Similarity metric
+   //###############################################################
+   double similarity(Feature const & u, Feature const & v, cv::Mat const & iCovar);
  
 }
 

@@ -62,8 +62,12 @@ public:
     void topTriangle();
 
 private:
+
     // Run settings
     Settings     m_settings;
+
+    // Number of misses
+    int          m_missCount;
 
     // data frames
     cv::Mat      m_rgb;
