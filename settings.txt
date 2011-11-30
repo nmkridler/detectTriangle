@@ -1,4 +1,7 @@
 dims 0.24,0.16,0.28
 color 10.0,170.4,252.5
-thresh 9
+thresh 0.99
 misses 5
+hits 5
+HSVMIN 0,100,100
+HSVMAX 15,256,256

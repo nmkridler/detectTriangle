@@ -15,9 +15,6 @@ Detection(settings,frameSize)
 	m_target[4] = m_settings.color.z;
 	m_target[5] = 90.;
 
-	// Invert the covariance matrix
-	cv::invert(Kinect::COVAR,m_inverse,cv::DECOMP_SVD);
-
 }
 
 void Triangles::processFrame(cv::Mat const & rgb, cv::Mat const & depth)
@@ -40,7 +37,8 @@ void Triangles::processFrame(cv::Mat const & rgb, cv::Mat const & depth)
 //###############################################################
 void Triangles::getContour(){
    // Create a destination array
-   cv::Mat gray;                            // Initialize some Mats
+   cv::Mat gray,orange;                            // Initialize some Mats
+   Filters::filterOrange(m_frame,m_settings.HSVMIN,m_settings.HSVMAX);
    Filters::binaryFilter(m_frame,gray);     // Convert rgb data to grayscale
     
    // Contour info
@@ -72,21 +70,14 @@ void Triangles::getContour(){
 				  // Create a new detection
             	  Contact newContact;
             	  Feature newFeature(6,0);
-            	  newContact.position = triangleCenter - cv::Point(50,50);
-            	  newContact.dims     = cv::Point(100,100);
+            	  newContact.position = triangleCenter - cv::Point(m_boxSize.x/2,m_boxSize.y/2);
+            	  newContact.dims     = m_boxSize;
                   newContact.score    = contourScore(approxTriangle,newFeature);
                   newContact.valid    = false;
 
-#if 0
-				  if( m_tracking && overlap(newContact) > 0.6)
-				  {
-					  newContact.valid = true;
-			 	  }
-#endif
                   // Add to the list
                   if( newContact.score > 0 ){
                 	  m_list.push_back(newContact);
-                	  //std::cout << newContact.score << std::endl;
                   }
 
                }
@@ -107,12 +98,11 @@ double Triangles::contourScore( std::vector<cv::Point> const & triangle,
 		                        Feature                      & features)
 {
    // To calculate the score we need the distance
-   std::vector<double> distance;
-   for(size_t idx = 0; idx < triangle.size(); idx++)
-   {
-      distance.push_back(pixelDepth(triangle[idx]));
-      if( distance.back() <= 0. ) return -1.;
-   }
+   double depth = pixelDepth(triangle);
+
+   // Depth is outside Kinect operating bounds
+   if( depth <= 0.6 || depth >= 10. ) return -1;
+   std::vector<double> distance(3,depth);
 
    // Get a color score
    contourColor( triangle, features);
@@ -124,7 +114,7 @@ double Triangles::contourScore( std::vector<cv::Point> const & triangle,
    // Now we can get a shape score
    Stats::shape(xyzTriangle,features[1],features[5],features[0]);
 
-   return Stats::similarity(features,m_target,m_inverse);
+   return Stats::similarity(features,m_target);
 }
 
       
@@ -135,18 +125,22 @@ double Triangles::contourScore( std::vector<cv::Point> const & triangle,
 //   determine the depth in meters
 // 
 //###############################################################
-double Triangles::pixelDepth( cv::Point const & vertex )
+double Triangles::pixelDepth( std::vector<cv::Point> const & contour )
 {
-   // Get the depth value for this vertex
-   double x = ((static_cast<double>(vertex.x) + 46.)/586.)*640.;
-   double y = ((static_cast<double>(vertex.y) + 37.)/436.)*480.;
 
-   cv::Point shift(std::max(std::min(static_cast<int>(x),640),0),
-                   std::max(std::min(static_cast<int>(y),480),0));
-   if( shift.x == 0 || shift.y == 0 || shift.x == 640 || shift.y == 480 ) return 0.;
+   cv::Mat contourMask = cv::Mat::zeros(m_frame.size(), CV_8UC1);
+   cv::Scalar color(255);
 
-   double depIdx = static_cast<double>(m_depth.at<uint16_t>(shift));
-   return k3*tan(depIdx/k2 + k1);
+   // Create a mask of a filled contour
+   cv::fillConvexPoly(contourMask, contour.data(),
+                      contour.size(), color);
+
+   // Get the center of mass
+   cv::Scalar depthMean;
+   cv::Scalar depthStd;
+   cv::meanStdDev(m_depth, depthMean, depthStd, contourMask);
+
+   return k3*tan(depthMean[0]/k2 + k1);
 
 }
 

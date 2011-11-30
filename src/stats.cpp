@@ -107,11 +107,41 @@ void Stats::shape( std::vector<cv::Point3d>  const  & xyz,
 
 }
 
-double Stats::similarity(Feature const & u, Feature const & v, cv::Mat const & iCovar)
+double Stats::similarity(Feature const & u, Feature const & v)
 {
 #if 0
-   for(size_t i = 0; i < 5; ++i) std::cout << u[i] << ",";
-   std::cout << u[5] << std::endl;
+   for(size_t i = 0; i < 6; ++i) std::cout << u[i] << ",";
 #endif
-   return cv::Mahalanobis(cv::Mat(u),cv::Mat(v),iCovar);
+   double normU = 0;
+   double normV = 0;
+   double dotUV = 0;
+   for( size_t i = 0; i < 6; ++i)
+   {
+	   normU += (u[i]*u[i]);
+	   normV += (v[i]*v[i]);
+	   dotUV += (u[i]*v[i]);
+   }
+   return dotUV/(sqrt(normV)*sqrt(normU));
+}
+
+double Stats::overlap(Contact const & boxA, Contact const & boxB)
+{
+	if( boxA.position.x > boxB.position.x + boxB.dims.x ||
+	    boxB.position.x > boxA.position.x + boxA.dims.x ||
+	    boxA.position.y > boxB.position.y + boxB.dims.y ||
+	    boxB.position.y > boxA.position.y + boxA.dims.y ) return 0.;
+
+	// The bounding boxes overlap, determine the area of overlap
+	double width  = static_cast<double>(std::min(boxA.position.x + boxA.dims.x,
+			                                     boxB.position.x + boxB.dims.x) -
+			                            std::max(boxA.position.x,boxB.position.x));
+	double height = static_cast<double>(std::min(boxA.position.y + boxA.dims.y,
+			                                     boxB.position.y + boxB.dims.y) -
+			                            std::max(boxA.position.y,boxB.position.y));
+
+	double totalArea = static_cast<double>(boxA.dims.y*boxA.dims.x + boxB.dims.x*boxB.dims.y) - width*height;
+
+	// Amount of overlap
+	return (width*height)/totalArea;
+
 }

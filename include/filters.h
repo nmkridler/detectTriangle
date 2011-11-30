@@ -11,7 +11,7 @@ namespace Filters
    static const cv::Scalar   HSV_UPPER(15,256,256);
 
    // Filter for orange
-   void filterOrange(cv::Mat &output);
+   void filterOrange(cv::Mat &output, cv::Scalar const & hsvmin, cv::Scalar const & hsvmax);
 
    // Binary filter
    void edgeDetection(cv::Mat const &input, cv::Mat &output);

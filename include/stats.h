@@ -8,7 +8,7 @@
 #include <cxcore.h>
 #include <highgui.h>
 #include <constants.h>
-
+#include <detection.h>
 
 namespace Stats
 {
@@ -47,7 +47,9 @@ namespace Stats
    //###############################################################
    // Similarity metric
    //###############################################################
-   double similarity(Feature const & u, Feature const & v, cv::Mat const & iCovar);
+   double similarity(Feature const & u, Feature const & v);
+
+   double overlap(Contact const & boxA, Contact const & boxB);
  
 }
 

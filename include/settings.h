@@ -28,8 +28,11 @@ class Settings
       // Settings are public
       cv::Point3d                dimensions;     // x: base, y: height z: hypotenuse
       cv::Point3d                color;          // x: red, y: green, z: blue
+      cv::Scalar                 HSVMIN;         // HSV filter
+      cv::Scalar                 HSVMAX;         // HSV filter
       double                     threshold;      // detection threshold
       int                        misses;         // number of allowable misses
+      int                        hits;           // hits to be declared
 
    private:
 

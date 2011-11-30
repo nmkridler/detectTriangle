@@ -61,6 +61,7 @@ public:
 
     void topTriangle();
 
+    void triangleUpdate();
 private:
 
     // Run settings
@@ -79,7 +80,7 @@ private:
     cv::Mat      m_integral;
 
     Contact                m_contact;
-
+    TrackTable             m_table;
     bool                   m_reInit;
     bool                   m_initialized;
     double                 m_confidence;

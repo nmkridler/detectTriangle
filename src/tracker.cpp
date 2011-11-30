@@ -105,8 +105,6 @@ void Tracker::update(cv::Mat     const & frame,
     out.dims.x     = in.dims.x + static_cast<int>(offset.x*2.0f);
     out.dims.y     = in.dims.y + static_cast<int>(offset.y*2.0f);
 
-	// Swap the images
-	frame.copyTo(m_prevGray);
 }
 
 void Tracker::setPrevious(cv::Mat const & frame)

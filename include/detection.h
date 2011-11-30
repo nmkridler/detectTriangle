@@ -9,16 +9,19 @@
 #include <vector>
 #include <opencv2/highgui/highgui.hpp>
 #include <classifier.h>
-
+#include <list>
 struct Contact
 {
 	cv::Point   position;
 	cv::Point   dims;
 	double      score;
+	int         hits;
+	int         misses;
 	bool        valid;
 };
 
 typedef std::vector<Contact> ContactList;
+typedef std::list<Contact>   TrackTable;
 
 class Detection 
 {
@@ -44,6 +47,7 @@ public:
    void trainNegative(cv::Mat const & integral);
 
    void tracking(bool const & tracking) {m_tracking = tracking;}
+
 
 protected:
    Settings        m_settings;       // Detector settings

@@ -1,7 +1,7 @@
 #include <filters.h>
 
 // Filter the feed to get orange only 
-void Filters::filterOrange( cv::Mat& output)
+void Filters::filterOrange( cv::Mat& output, cv::Scalar const & hsvmin, cv::Scalar const &hsvmax)
 {
    // convert RGB to HSV
    cv::Mat tmpHSV;
@@ -10,7 +10,7 @@ void Filters::filterOrange( cv::Mat& output)
    // Create a mask for the orange color
    cv::Mat orangeImg = cv::Mat::zeros(tmpHSV.size(), CV_8UC1);
    cv::Mat orangeMsk(tmpHSV.size(), CV_8UC1);
-   cv::inRange(tmpHSV, Filters::HSV_LOWER,Filters::HSV_UPPER, orangeMsk);
+   cv::inRange(tmpHSV,hsvmin,hsvmax, orangeMsk);
 
    // dilate(erode)
    cv::morphologyEx(orangeMsk,orangeMsk,cv::MORPH_OPEN,cv::Mat());
@@ -35,7 +35,6 @@ void Filters::binaryFilter(cv::Mat const &input, cv::Mat &output)
    // Filter out the orange first
    cv::Mat tmpMat;
    input.copyTo(tmpMat);
-   filterOrange(tmpMat);
 
    // Do the edge detection
    edgeDetection(tmpMat,output);

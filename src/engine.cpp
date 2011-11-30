@@ -40,8 +40,10 @@ m_filterToggle(0)
 void Engine::setBox( BoundingBox const & box )
 {
 	m_box     = box;
-	m_box.set = true;
 	m_reInit  = true;
+	m_contact.position = box.lowerLeft;
+	m_contact.dims     = box.size;
+
 }
 void Engine::setOutput()
 {
@@ -57,7 +59,7 @@ void Engine::setOutput()
 
     m_rgb.copyTo(leftSide);
 
-#if 1
+#if 0
     if( m_box.set )
     {
 		cv::rectangle(leftSide,m_contact.position,m_contact.position + m_contact.dims,
@@ -66,16 +68,17 @@ void Engine::setOutput()
 		std::cout << m_contact.score << std::endl;
     }
 #endif
-#if 0
-    ContactList contacts = m_detector->getDetections();
-    for( size_t idx = 0; idx < contacts.size(); ++idx)
+#if 1
+    TrackTable::iterator contacts = m_table.begin();
+    while( contacts != m_table.end())
     {
-       if( contacts[idx].score < m_settings.threshold)
-       {
-   		cv::rectangle(leftSide,contacts[idx].position,
-   				      contacts[idx].position + contacts[idx].dims,
-   				      Scalar(0,0,255),5);
-       }
+    	if( contacts->hits > 5 )
+    	{
+   		   cv::rectangle(leftSide,contacts->position,
+   			     	      contacts->position + contacts->dims,
+   				          Scalar(0,0,255),5);
+        }
+    	++contacts;
     }
 #endif
     switch(m_filterToggle){
@@ -84,12 +87,13 @@ void Engine::setOutput()
            break;
         case CONTOURS:
            m_rgb.copyTo(rightSide);
+           Filters::filterOrange(rightSide,m_settings.HSVMIN,m_settings.HSVMAX);
            Filters::binaryFilter(rightSide,m_mask);
            rightSide.setTo(cv::Scalar(255,255,255),m_mask);
            break;
         case ORANGE:
            m_rgb.copyTo(rightSide);
-           Filters::filterOrange(rightSide);
+           Filters::filterOrange(rightSide,m_settings.HSVMIN,m_settings.HSVMAX);
            break;
         default: break;
     }
@@ -130,6 +134,7 @@ void Engine::update()
     if(m_device->getVideo(m_rgb) && m_device->getDepth(m_depthRaw))
     {
        m_device->depthViewColor(m_depth);
+       cv::cvtColor(m_rgb,m_gray,CV_BGR2GRAY);
 #if 0
        // Create a grayscale image
        cv::cvtColor(m_rgb,m_gray,CV_BGR2GRAY);
@@ -147,25 +152,7 @@ void Engine::update()
     	   m_tracker.setPrevious(m_gray);
        }
 #endif
-       m_detector->processFrame(m_rgb,m_depthRaw);
-       // Get the greatest detected patch confidence
-       ContactList contacts = m_detector->getDetections();
-       double minScore = m_settings.threshold;
-       for( size_t idx = 0; idx < contacts.size(); ++idx)
-       {
-          if( contacts[idx].score < minScore)
-          {
-             minScore = contacts[idx].score;
-             m_contact = contacts[idx];
-             m_box.set = true;
-             m_missCount = 0;
-          }
-       }
-       if( contacts.empty() && m_box.set)
-       {
-    	   ++m_missCount;
-       }
-       if( m_missCount > m_settings.misses ) m_box.set = false;
+       triangleUpdate();
 
        setOutput();
 
@@ -300,5 +287,97 @@ void Engine::tldUpdate()
    m_box.lowerLeft = newContact.position;
    m_box.size      = newContact.dims;
    m_contact       = newContact;
+
+}
+
+
+void Engine::triangleUpdate()
+{
+	// If there are detections, propagate the tracks forward
+	if( !m_table.empty() )
+    {
+		Contact newContact;
+		TrackTable::iterator tracks = m_table.begin();
+		while( tracks != m_table.end())
+		{
+		   newContact = *tracks;
+		   m_tracker.update(m_gray,*tracks,newContact);
+		   *tracks = newContact;
+		   ++tracks;
+		}
+    }
+	m_tracker.setPrevious(m_gray);
+
+    m_detector->processFrame(m_rgb,m_depthRaw);
+
+    // Get the list of detections
+    ContactList contacts = m_detector->getDetections();
+    TrackTable  newTracks;
+    for( size_t idx = 0; idx < contacts.size(); ++idx)
+    {
+       // If the contact is above the threshold add to
+       // the contact list
+       if( contacts[idx].score > m_settings.threshold)
+       {
+          contacts[idx].hits   = 1;
+          contacts[idx].misses = 0.;
+
+          // If the track table is empty, add to it
+          if( m_table.empty() )
+          {
+             newTracks.push_back(contacts[idx]);
+          }
+          else
+          {
+        	  bool foundMatch = false;
+        	  // loop over the existing tracks to see if there are any matches
+        	  TrackTable::iterator tracks = m_table.begin();
+        	  while( tracks != m_table.end())
+        	  {
+        		  // Do the boxes overlap?
+        		  if( Stats::overlap(contacts[idx],*tracks) > 0.4 )
+        		  {
+        			  contacts[idx].hits = tracks->hits + 1;
+        			  contacts[idx].misses = 0;
+        			  foundMatch = true;
+        			  *tracks = contacts[idx];
+        			  tracks->valid = true;
+        			  break;
+        		  }
+        		  tracks->valid = false;
+        		  ++tracks;
+        	  }
+        	  if( !foundMatch )
+        	  {
+        		  newTracks.push_back(contacts[idx]);
+        	  }
+          }
+       }
+    }
+
+    // Loop through the track table and add misses to the invalid ones
+    TrackTable::iterator tracks = m_table.begin();
+    while( tracks != m_table.end())
+    {
+    	if( !tracks->valid )
+    	{
+    		tracks->misses += 1;
+    		tracks->hits   -= 1;
+    		if( tracks->misses > m_settings.misses )
+    		{
+    			tracks = m_table.erase(tracks);
+    		} else ++tracks;
+
+    	} else ++tracks;
+    }
+    // Now add all the new tracks
+    tracks = newTracks.begin();
+    while( tracks != newTracks.end() )
+    {
+    	m_table.push_back(*tracks);
+    	++tracks;
+    }
+
+
 
 }

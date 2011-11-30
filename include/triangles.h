@@ -35,7 +35,7 @@ public:
    //###############################################################
    // pixelDepth
    //###############################################################
-   double pixelDepth( cv::Point const & vertex );
+   double pixelDepth( std::vector<cv::Point> const & contour );
 
    //###############################################################
    // reduceContour
@@ -55,12 +55,20 @@ public:
    //###############################################################
    void processFrame(cv::Mat const & rgb, cv::Mat const & depth);
 
+   //###############################################################
+   // Calculate the covariance matrix from the training data
+   //###############################################################
+   void calcInvCovariance();
+
+
 private:
 
-   cv::Mat m_frame;
-   cv::Mat m_depth;
-   Feature m_target;
-   cv::Mat m_inverse;
+   cv::Mat                  m_frame;       // RGB Frame
+   cv::Mat                  m_depth;       // Depth frame
+   Feature                  m_target;      // Target means
+   cv::Mat                  m_inverse;     // Inverse covariance matrix
+
+   // Constants for depth calculation
    static const float k1 = 1.1863;
    static const float k2 = 2842.5;
    static const float k3 = 0.1236;

@@ -64,7 +64,28 @@ bool Settings::readSettings()
    color.y = std::atof(strVec[1].c_str());
    color.z = std::atof(strVec[2].c_str());
 
+   // Create a stringstream for the color
+   std::stringstream parseHSVmin(fMap["HSVMIN"]);
+   tmpStr.clear();
+   strVec.clear();
+   while(getline(parseHSVmin,tmpStr,',')) strVec.push_back(tmpStr);
+   if( strVec.size() < 3) return false;
+   HSVMIN[0] = std::atof(strVec[0].c_str());
+   HSVMIN[1] = std::atof(strVec[1].c_str());
+   HSVMIN[2] = std::atof(strVec[2].c_str());
+
+   // Create a stringstream for the color
+   std::stringstream parseHSVmax(fMap["HSVMAX"]);
+   tmpStr.clear();
+   strVec.clear();
+   while(getline(parseHSVmax,tmpStr,',')) strVec.push_back(tmpStr);
+   if( strVec.size() < 3) return false;
+   HSVMAX[0] = std::atof(strVec[0].c_str());
+   HSVMAX[1] = std::atof(strVec[1].c_str());
+   HSVMAX[2] = std::atof(strVec[2].c_str());
+
    threshold = std::atof(fMap["thresh"].c_str());
    misses    = std::atoi(fMap["misses"].c_str());
+   hits      = std::atoi(fMap["hits"].c_str());
    return true;
 }
