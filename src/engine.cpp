@@ -9,8 +9,8 @@ m_confidence(1.),
 m_filterToggle(0)
 {
 	// Initialize the bounding box
-	m_box.set = false;
-
+    m_box.set = false;
+    m_table.clear();
 	// Create the kinect device
     m_device.reset(&freenect.createDevice<KinectDevice>(0));
     m_device->startVideo();
@@ -72,11 +72,11 @@ void Engine::setOutput()
     TrackTable::iterator contacts = m_table.begin();
     while( contacts != m_table.end())
     {
-    	if( contacts->hits > 5 )
+    	if( contacts->hits > m_settings.hits )
     	{
-   		   cv::rectangle(leftSide,contacts->position,
-   			     	      contacts->position + contacts->dims,
-   				          Scalar(0,0,255),5);
+	   cv::rectangle(leftSide,contacts->position,
+                         contacts->position + contacts->dims,
+                         Scalar(0,0,255),5);
         }
     	++contacts;
     }
@@ -155,9 +155,9 @@ void Engine::update()
        triangleUpdate();
 
        setOutput();
+    m_display->update(m_out);
 
     }
-    m_display->update(m_out);
 }
 void Engine::tldInitialize()
 {
@@ -268,8 +268,8 @@ void Engine::tldUpdate()
          if( contacts[idx].valid )
          {
             m_detector->classifier()->train(m_integral,
-							                contacts[idx].position,
-							                contacts[idx].dims,1);
+			                    contacts[idx].position,
+			                    contacts[idx].dims,1);
 
          } else if ( !contacts[idx].valid && contacts[idx].score > 0.5)
          {
@@ -293,28 +293,31 @@ void Engine::tldUpdate()
 
 void Engine::triangleUpdate()
 {
-	// If there are detections, propagate the tracks forward
-	if( !m_table.empty() )
-    {
-		Contact newContact;
-		TrackTable::iterator tracks = m_table.begin();
-		while( tracks != m_table.end())
-		{
-		   newContact = *tracks;
-		   m_tracker.update(m_gray,*tracks,newContact);
-		   *tracks = newContact;
-		   ++tracks;
-		}
-    }
-	m_tracker.setPrevious(m_gray);
+   // If there are detections, propagate the tracks forward
+   if( !m_table.empty() )
+   {
+      Contact newContact;
+      TrackTable::iterator tracks = m_table.begin();
+      while( tracks != m_table.end())
+      {
+         newContact = *tracks;
+	 m_tracker.update(m_gray,*tracks,newContact);
+	 *tracks = newContact;
+         tracks->valid = false;
+	 ++tracks;
+      }
+   }
+   m_tracker.setPrevious(m_gray);
 
-    m_detector->processFrame(m_rgb,m_depthRaw);
+   // Find Triangles
+   m_detector->processFrame(m_rgb,m_depthRaw);
 
-    // Get the list of detections
-    ContactList contacts = m_detector->getDetections();
-    TrackTable  newTracks;
-    for( size_t idx = 0; idx < contacts.size(); ++idx)
-    {
+   // Get the list of detections
+   ContactList contacts = m_detector->getDetections();
+   std::cout << "contacts: " << contacts.size() << std::endl;
+   TrackTable  newTracks;
+   for( size_t idx = 0; idx < contacts.size(); ++idx)
+   {
        // If the contact is above the threshold add to
        // the contact list
        if( contacts[idx].score > m_settings.threshold)
@@ -329,28 +332,30 @@ void Engine::triangleUpdate()
           }
           else
           {
-        	  bool foundMatch = false;
-        	  // loop over the existing tracks to see if there are any matches
-        	  TrackTable::iterator tracks = m_table.begin();
-        	  while( tracks != m_table.end())
-        	  {
-        		  // Do the boxes overlap?
-        		  if( Stats::overlap(contacts[idx],*tracks) > 0.4 )
-        		  {
-        			  contacts[idx].hits = tracks->hits + 1;
-        			  contacts[idx].misses = 0;
-        			  foundMatch = true;
-        			  *tracks = contacts[idx];
-        			  tracks->valid = true;
-        			  break;
-        		  }
-        		  tracks->valid = false;
-        		  ++tracks;
-        	  }
-        	  if( !foundMatch )
-        	  {
-        		  newTracks.push_back(contacts[idx]);
-        	  }
+             bool foundMatch = false;
+             // loop over the existing tracks to see if there are any matches
+             TrackTable::iterator tracks = m_table.begin();
+       	     while( tracks != m_table.end())
+             {
+                // Do the boxes overlap?
+                if( Stats::overlap(contacts[idx],*tracks) > 0.4 )
+        	{
+                   foundMatch = true;
+                   if( !tracks->valid )
+                   {
+                      tracks->valid = true;
+                      tracks->hits++;
+                      if( tracks->hits > m_settings.hits ) tracks->hits = m_settings.hits + 1;
+                      tracks->misses = 0;
+                   }
+        	   break;
+        	} 
+        	++tracks;
+             }
+             if( !foundMatch )
+             {
+                newTracks.push_back(contacts[idx]);
+             }
           }
        }
     }
@@ -361,13 +366,11 @@ void Engine::triangleUpdate()
     {
     	if( !tracks->valid )
     	{
-    		tracks->misses += 1;
-    		tracks->hits   -= 1;
-    		if( tracks->misses > m_settings.misses )
-    		{
-    			tracks = m_table.erase(tracks);
-    		} else ++tracks;
-
+           tracks->misses += 1;
+           if( tracks->misses > m_settings.misses )
+           {
+              tracks = m_table.erase(tracks);
+           } else ++tracks;
     	} else ++tracks;
     }
     // Now add all the new tracks

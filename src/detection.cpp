@@ -8,8 +8,8 @@ m_settings(settings),
 m_tracking(false),
 m_size(frameSize)
 {
-	m_boxSize.x = 60;
-	m_boxSize.y = 60;
+	m_boxSize.x = 100;
+	m_boxSize.y = 100;
 	m_classifier.reset( new Classifier(10,5,cv::Point2f(0.1,0.5)));
 }
 void Detection::setTrackBox( Contact const & box)

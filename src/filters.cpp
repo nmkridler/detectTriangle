@@ -14,7 +14,8 @@ void Filters::filterOrange( cv::Mat& output, cv::Scalar const & hsvmin, cv::Scal
 
    // dilate(erode)
    cv::morphologyEx(orangeMsk,orangeMsk,cv::MORPH_OPEN,cv::Mat());
-   cv::morphologyEx(orangeMsk,orangeMsk,cv::MORPH_CLOSE,cv::Mat());
+   //cv::morphologyEx(orangeMsk,orangeMsk,cv::MORPH_CLOSE,cv::Mat());
+   cv::dilate(orangeMsk,orangeMsk,cv::Mat());
    orangeImg.setTo(cv::Scalar(255),orangeMsk);
 
    // Find the non orange pixels and set to 0

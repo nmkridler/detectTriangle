@@ -6,7 +6,7 @@ bool Stats::validTriangle( std::vector<cv::Point> const & contour,
    bool foundStray = false;
    for( unsigned int idx = 0; idx < contour.size(); ++idx)
    {
-      if( cv::pointPolygonTest(cv::Mat(triangle),contour[idx],false) < 0.0)
+      if( fabs(cv::pointPolygonTest(cv::Mat(triangle),contour[idx],true)) > 10)
          foundStray = true;
    }
    return !foundStray;
@@ -109,7 +109,7 @@ void Stats::shape( std::vector<cv::Point3d>  const  & xyz,
 
 double Stats::similarity(Feature const & u, Feature const & v)
 {
-#if 0
+#if 1
    for(size_t i = 0; i < 6; ++i) std::cout << u[i] << ",";
 #endif
    double normU = 0;

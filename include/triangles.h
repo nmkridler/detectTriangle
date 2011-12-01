@@ -35,14 +35,24 @@ public:
    //###############################################################
    // pixelDepth
    //###############################################################
-   double pixelDepth( std::vector<cv::Point> const & contour );
+   double averageDepth( std::vector<cv::Point> const & contour );
+
+   //###############################################################
+   // pixelDepth
+   //###############################################################
+   double pixelDepth( cv::Point const & point );
 
    //###############################################################
    // reduceContour
    //###############################################################
-   void reduceContour( std::vector<cv::Point> const & contour,
+   bool reduceContour( std::vector<cv::Point> const & contour,
    		               std::vector<cv::Point>       & newTri);
 
+   //###############################################################
+   // reduceContour
+   //###############################################################
+   void clusterContour( std::vector<cv::Point> const & contour,
+   		               std::vector<cv::Point>       & newTri);
    //###############################################################
    // Set the color mean and standard deviation of the object
    //###############################################################
@@ -54,11 +64,6 @@ public:
    // Process a frame of data
    //###############################################################
    void processFrame(cv::Mat const & rgb, cv::Mat const & depth);
-
-   //###############################################################
-   // Calculate the covariance matrix from the training data
-   //###############################################################
-   void calcInvCovariance();
 
 
 private:

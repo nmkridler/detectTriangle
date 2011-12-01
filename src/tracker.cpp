@@ -12,7 +12,7 @@ Tracker::Tracker()
 
 void Tracker::update(cv::Mat     const & frame,
 	                 Contact     const & in,
-			         Contact           & out)
+		         Contact           & out)
 {
 
 	// Clear the status and err settings
@@ -57,13 +57,14 @@ void Tracker::update(cv::Mat     const & frame,
 		}
 	}
 
-	// Sort the vectors
-	std::sort(xDist.begin(),xDist.end());
-	std::sort(yDist.begin(),yDist.end());
-    size_t idx = xDist.size()/2;
+   // Sort the vectors
+   std::sort(xDist.begin(),xDist.end());
+   std::sort(yDist.begin(),yDist.end());
+   size_t idx = xDist.size()/2;
 
-    cv::Point2f medianDist(xDist[idx],yDist[idx]);
+   cv::Point2f medianDist(xDist[idx],yDist[idx]);
 
+#if 0
     // Check the scale
     std::vector<float> scales;
     for( int i = 0; i < 100; ++i)
@@ -85,7 +86,6 @@ void Tracker::update(cv::Mat     const & frame,
     		}
     	}
     }
-
     // Sort
     float scale = 0.0f;
 
@@ -95,9 +95,10 @@ void Tracker::update(cv::Mat     const & frame,
        idx = scales.size()/2;
        scale = (scales[idx] + scales[idx+1])/2.0f - 1.0f;
     }
-
+#endif
+    float scale = 0.0f;
     cv::Point2f offset( static_cast<float>(in.dims.x)*scale/2.0f,
-    		            static_cast<float>(in.dims.y)*scale/2.0f);
+    		        static_cast<float>(in.dims.y)*scale/2.0f);
 
     // Calculate offsets
     out.position.x = in.position.x - static_cast<int>(offset.x - medianDist.x);
