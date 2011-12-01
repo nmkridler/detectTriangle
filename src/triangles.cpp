@@ -41,10 +41,10 @@ void Triangles::getContour(){
    m_frame.copyTo(orange);
    Filters::filterOrange(orange,m_settings.HSVMIN,m_settings.HSVMAX);
    Filters::binaryFilter(orange,gray);     // Convert rgb data to grayscale
-    
+
    // Contour info
    std::vector<std::vector<cv::Point> > contours;
-   cv::findContours(gray, contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
+   cv::findContours(gray, contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 
    // If contours exist, find the triangles
    if( contours.size() > 0 ){
@@ -52,9 +52,25 @@ void Triangles::getContour(){
       for( size_t idx = 0; idx < contours.size(); ++idx )
       {
          std::vector<cv::Point> approx;
+         std::vector<cv::Point> hullPts;
          std::vector<cv::Point> cluster;
          std::vector<cv::Point> approxTriangle;
-         cv::approxPolyDP(cv::Mat(contours[idx]), approx, 5, true);
+         //cv::approxPolyDP(cv::Mat(contours[idx]), approx, 10, true);
+         cv::convexHull(cv::Mat(contours[idx]),hullPts,false);
+         cv::approxPolyDP(cv::Mat(hullPts), approx, 10, true);
+#if 0
+   cv::Mat contourMask = cv::Mat::zeros(cv::Size(640,480),CV_8UC1);
+   cv::Scalar color(255);
+   std::vector<cv::Point> hullPts;
+   cv::convexHull(cv::Mat(contours[idx]),hullPts,false);
+   cv::fillConvexPoly(contourMask, hullPts.data(),
+                      hullPts.size(), color);
+   cv::namedWindow("test",1);
+   cv::flip(contourMask,contourMask,0);
+   cv::imshow("test",contourMask);
+   cv::waitKey(0);
+#endif
+
          if( approx.size() > 2 )
          {
             double areaIdx = cv::contourArea(approx);
